@@ -1,4 +1,4 @@
-# Zebra RFID & Barcode Sample App (AI Enhanced)
+# Zebra RFID & Barcode Sample App
 
 This Android app demonstrates Zebra RFID and Barcode integration, using Zebra RFID SDK and DataWedge API for asset tracking and data collection. It supports USB and Bluetooth connections, real-time inventory, barcode scanning, and hardware trigger events. The UI updates with scanned tags and barcodes, and permissions are managed for Android 12+.
 
@@ -25,18 +25,6 @@ This Android app demonstrates Zebra RFID and Barcode integration, using Zebra RF
 - `RFIDHandler.java`: Manages Zebra RFID SDK logic, connection, inventory, and events.
 - `DataWedgeHandler.java`: Creates DataWedge profile, listens for barcode/scanner status via Broadcast Intents.
 - `ScannerHandler.java`: Handles Zebra Scanner SDK events (implicit).
-
-## Getting Started
-
-1.  **Clone the repository:**
-    ```bash
-    git clone https://github.com/your-username/HHSampleAppAI.git
-    ```
-2.  **Open in Android Studio:** Import the project and let Gradle sync.
-3.  **Build & Deploy:** Run the app on a Zebra Android device.
-4.  **Configuration:**
-    - Enable Bluetooth for wireless connection.
-    - App auto-creates DataWedge profile `HHSampleAppProfile` on first run.
 
 ## Usage
 

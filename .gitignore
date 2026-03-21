@@ -11,7 +11,6 @@
 *.log
 *.tmp
 *.swp
-*.DS_Store
 
 # Gradle
 .gradle/
@@ -28,20 +27,13 @@ local.properties
 # Misc
 *.orig
 *.bak
-
-# Allow AAR files in app/libs and app/libs177
-!app/libs/*.aar
-!app/libs177/*.aar
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
-/build
 /captures
 .externalNativeBuild
 .cxx
 /google-services.json
-/app/build
-*.apk
 *.aar
 *.jks
+
+# Allow AAR files in app/libs and app/libs177
+!app/libs/*.aar
+!app/libs177/*.aar

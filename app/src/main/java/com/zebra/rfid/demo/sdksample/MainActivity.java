@@ -268,14 +268,6 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
     }
 
     /**
-     * Called when the Test button is clicked.
-     * @param view The view that was clicked.
-     */
-    public void testFunction(View view) {
-        rfidHandler.testFunction();
-    }
-
-    /**
      * Called when the Stop Inventory button is clicked.
      * @param view The view that was clicked.
      */
@@ -289,27 +281,32 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
     public void handleTagdata(TagData[] tagData) {
         if (tagData == null || tagData.length == 0) return;
 
-        final ArrayList<String> newTags = new ArrayList<>();
+        // Build intermediate list of tag info from the callback data
+        final ArrayList<String[]> candidates = new ArrayList<>();
         for (TagData tag : tagData) {
             if (tag == null) continue;
             String tagId = tag.getTagID();
-            if (tagId != null && !tagSet.contains(tagId)) {
-                tagSet.add(tagId);
-                newTags.add(tagId + " (RSSI: " + tag.getPeakRSSI() + ")");
+            if (tagId != null) {
+                candidates.add(new String[]{tagId, tagId + " (RSSI: " + tag.getPeakRSSI() + ")"});
             }
         }
-        
-        if (!newTags.isEmpty()) {
-            final int totalUniqueTags = tagSet.size();
+
+        if (!candidates.isEmpty()) {
             runOnUiThread(() -> {
-                // Ensure list modification and notifyDataSetChanged happen together on UI thread
-                tagList.addAll(0, newTags); 
-                if (tagAdapter != null) {
-                    tagAdapter.notifyDataSetChanged();
+                ArrayList<String> newTags = new ArrayList<>();
+                for (String[] pair : candidates) {
+                    if (!tagSet.contains(pair[0])) {
+                        tagSet.add(pair[0]);
+                        newTags.add(pair[1]);
+                    }
                 }
-                
-                // Update status with unique tag count
-                updateUniqueTagCount(totalUniqueTags);
+                if (!newTags.isEmpty()) {
+                    tagList.addAll(0, newTags);
+                    if (tagAdapter != null) {
+                        tagAdapter.notifyDataSetChanged();
+                    }
+                    updateUniqueTagCount(tagSet.size());
+                }
             });
         }
     }

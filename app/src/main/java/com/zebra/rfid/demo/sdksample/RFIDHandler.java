@@ -61,7 +61,7 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
         textView = activity.getStatusTextViewRFID();
         scannerList = new ArrayList<>();
         scannerHandler = new ScannerHandler(activity);
-        InitSDK();
+        initSDK();
     }
 
     public String Test1() { return "TO DO"; }
@@ -126,8 +126,8 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
         executor.shutdown();
     }
 
-    private void InitSDK() {
-        Log.d(TAG, "InitSDK");
+    private void initSDK() {
+        Log.d(TAG, "initSDK");
         if (readers == null) {
             executor.execute(() -> {
                 InvalidUsageException exception = null;
@@ -167,8 +167,6 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
         }
     }
 
-    public void testFunction() {}
-
     private void connectReader() {
         // Offload the entire connection process to a background thread to keep UI responsive
         executor.execute(new Runnable() {
@@ -181,7 +179,7 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
 
                 synchronized (RFIDHandler.this) {
                     if (!isReaderConnected()) {
-                        GetAvailableReader();
+                        getAvailableReader();
                         String result = (reader != null) ? connect() : "Failed to find reader";
                         
                         // Update UI with the final result
@@ -199,7 +197,7 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
         });
     }
 
-    private synchronized void GetAvailableReader() {
+    private synchronized void getAvailableReader() {
         if (readers != null) {
             readers.attach(this);
             try {
@@ -232,9 +230,12 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
 
     @Override
     public void RFIDReaderDisappeared(ReaderDevice readerDevice) {
-        if (context != null) context.sendToast("RFIDReaderDisappeared: " + readerDevice.getName());
-        if (reader != null && readerDevice != null && readerDevice.getName().equals(reader.getHostName())) {
-            disconnect();
+        if (readerDevice != null) {
+            if (context != null) context.sendToast("RFIDReaderDisappeared: " + readerDevice.getName());
+            if (reader != null && readerDevice.getName() != null
+                    && readerDevice.getName().equals(reader.getHostName())) {
+                disconnect();
+            }
         }
     }
 
@@ -243,7 +244,7 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
             try {
                 if (!reader.isConnected()) {
                     reader.connect();
-                    ConfigureReader();
+                    configureReader();
                     setupScannerSDK();
                     if (reader.isConnected()) {
                         return "Connected: " + reader.getHostName();
@@ -259,7 +260,7 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
         return "Disconnected";
     }
 
-    private void ConfigureReader() {
+    private void configureReader() {
         IRFIDLogger.getLogger("SDKSampleApp").EnableDebugLogs(true);
         if (reader.isConnected()) {
             try {
@@ -355,6 +356,7 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
             if (reader != null && reader.isConnected()) reader.Actions.Inventory.perform();
         } catch (InvalidUsageException | OperationFailureException e) {
             Log.e(TAG, "Error performing inventory", e);
+            if (context != null) context.sendToast("Inventory error: " + e.getMessage());
         }
     }
 
@@ -363,6 +365,7 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
             if (reader != null && reader.isConnected()) reader.Actions.Inventory.stop();
         } catch (InvalidUsageException | OperationFailureException e) {
             Log.e(TAG, "Error stopping inventory", e);
+            if (context != null) context.sendToast("Stop error: " + e.getMessage());
         }
     }
 
