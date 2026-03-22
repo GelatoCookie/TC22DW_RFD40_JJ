@@ -92,6 +92,9 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
     private static final String DW_STATE_RECEIVED = "RECEIVED";
     private String dwState = null;
 
+    private Handler barcodeStateHandler = new Handler(Looper.getMainLooper());
+    private Runnable revertToWaitingRunnable = () -> setBarcodeButtonState(DW_STATE_WAITING);
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -447,6 +450,8 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
                 rebuildTagList();
                 updateUniqueTagCount(tagSeenCount.size());
                 setBarcodeButtonState(DW_STATE_RECEIVED);
+                barcodeStateHandler.removeCallbacks(revertToWaitingRunnable);
+                barcodeStateHandler.postDelayed(revertToWaitingRunnable, 1200);
             }
             Toast.makeText(MainActivity.this, "Barcode: " + val + " (" + symbology + ")", Toast.LENGTH_SHORT).show();
         });
@@ -481,7 +486,7 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
             if (scanResult != null) {
                 scanResult.setText(String.format("Scanner Status: %s", status));
             }
-            if ("WAITING".equalsIgnoreCase(status)) {
+            if ("WAITING".equalsIgnoreCase(status) && !DW_STATE_RECEIVED.equals(dwState)) {
                 setBarcodeButtonState(DW_STATE_WAITING);
             }
         });
