@@ -174,6 +174,16 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
         }
     }
 
+    private void playBarcodeBeep() {
+        try {
+            ToneGenerator toneGen = new ToneGenerator(AudioManager.STREAM_MUSIC, ToneGenerator.MAX_VOLUME);
+            toneGen.startTone(ToneGenerator.TONE_PROP_BEEP, 150);
+            new Handler(Looper.getMainLooper()).postDelayed(toneGen::release, 250);
+        } catch (Exception e) {
+            Log.e(TAG, "Error playing barcode beep", e);
+        }
+    }
+
     /**
      * Checks for necessary Bluetooth permissions and initializes the RFID handler.
      * Required for Android 12 (API 31) and higher.
@@ -390,6 +400,7 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
     @Override
     public void barcodeData(String val) {
         runOnUiThread(() -> {
+            playBarcodeBeep();
             if (scanResult != null) {
                 scanResult.setText(String.format("Scan Result : %s", val != null ? val : ""));
             }
@@ -406,6 +417,7 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
 
     public void barcodeData(String val, String symbology) {
         runOnUiThread(() -> {
+            playBarcodeBeep();
             if (scanResult != null) {
                 scanResult.setText(String.format("Scan Result: %s (%s)", val != null ? val : "", symbology != null ? symbology : ""));
             }
