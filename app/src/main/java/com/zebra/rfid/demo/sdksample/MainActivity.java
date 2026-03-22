@@ -151,11 +151,9 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
                 if (isConnected) {
                     statusTextViewRFID.setTextColor(ContextCompat.getColor(this, R.color.status_connected));
                     if (statusDot != null) {
-                        statusDot.setBackgroundResource(R.drawable.status_dot_connected_animated);
-                        android.graphics.drawable.Drawable d = statusDot.getBackground();
-                        if (d instanceof android.graphics.drawable.Animatable) {
-                            ((android.graphics.drawable.Animatable) d).start();
-                        }
+                        statusDot.setBackgroundResource(R.drawable.status_dot_connected);
+                        android.view.animation.Animation pulse = android.view.animation.AnimationUtils.loadAnimation(this, R.anim.pulse);
+                        statusDot.startAnimation(pulse);
                     }
                     if (btnStart != null) btnStart.setEnabled(true);
                     if (!wasConnected) {
@@ -167,10 +165,7 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
                     statusTextViewRFID.setTextColor(ContextCompat.getColor(this, R.color.status_disconnected));
                     if (statusDot != null) {
                         statusDot.setBackgroundResource(R.drawable.status_dot_disconnected);
-                        android.graphics.drawable.Drawable d = statusDot.getBackground();
-                        if (d instanceof android.graphics.drawable.Animatable) {
-                            ((android.graphics.drawable.Animatable) d).stop();
-                        }
+                        statusDot.clearAnimation();
                     }
                     if (btnStart != null) btnStart.setEnabled(false);
                     if (btnStop != null) btnStop.setEnabled(false);
