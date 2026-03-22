@@ -71,6 +71,8 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
     
     /** Map to track tag/barcode IDs and their seen counts. */
     private final LinkedHashMap<String, Integer> tagSeenCount = new LinkedHashMap<>();
+    /** Map to store a display label (e.g. symbology) per tag/barcode ID. */
+    private final LinkedHashMap<String, String> tagLabelMap = new LinkedHashMap<>();
     
     private static final int BLUETOOTH_PERMISSION_REQUEST_CODE = 100;
 
@@ -253,6 +255,7 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
     private void clearTagData() {
         runOnUiThread(() -> {
             tagSeenCount.clear();
+            tagLabelMap.clear();
             tagList.clear();
             if (tagAdapter != null) {
                 tagAdapter.notifyDataSetChanged();
@@ -310,7 +313,14 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
     private void rebuildTagList() {
         tagList.clear();
         for (Map.Entry<String, Integer> entry : tagSeenCount.entrySet()) {
-            tagList.add(entry.getKey() + "  x" + entry.getValue());
+            String id = entry.getKey();
+            int count = entry.getValue();
+            String label = tagLabelMap.get(id);
+            if (label != null) {
+                tagList.add(id + " (" + label + ")  x" + count);
+            } else {
+                tagList.add(id + "  x" + count);
+            }
         }
         if (tagAdapter != null) {
             tagAdapter.notifyDataSetChanged();
@@ -348,6 +358,7 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
             if (val != null) {
                 int count = tagSeenCount.getOrDefault(val, 0) + 1;
                 tagSeenCount.put(val, count);
+                tagLabelMap.put(val, "Barcode");
                 rebuildTagList();
                 updateUniqueTagCount(tagSeenCount.size());
             }
@@ -363,6 +374,7 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
             if (val != null) {
                 int count = tagSeenCount.getOrDefault(val, 0) + 1;
                 tagSeenCount.put(val, count);
+                tagLabelMap.put(val, symbology != null ? symbology : "Barcode");
                 rebuildTagList();
                 updateUniqueTagCount(tagSeenCount.size());
             }
