@@ -459,7 +459,7 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
         if (btnScan == null) return;
         dwState = state;
         if (DW_STATE_WAITING.equals(state)) {
-            btnScan.setIconResource(R.drawable.ic_barcode_large);
+            btnScan.setIconResource(R.drawable.ic_barcode_large_black);
             btnScan.setText("SCAN");
             btnScan.setTextColor(ContextCompat.getColor(this, R.color.text_secondary));
         } else if (DW_STATE_RECEIVED.equals(state)) {
