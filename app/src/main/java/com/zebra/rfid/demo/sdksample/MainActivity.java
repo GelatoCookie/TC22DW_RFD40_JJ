@@ -3,8 +3,12 @@ package com.zebra.rfid.demo.sdksample;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.pm.PackageManager;
+import android.media.AudioManager;
+import android.media.ToneGenerator;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -75,6 +79,7 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
     private final LinkedHashMap<String, String> tagLabelMap = new LinkedHashMap<>();
     
     private static final int BLUETOOTH_PERMISSION_REQUEST_CODE = 100;
+    private boolean wasConnected = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -127,13 +132,35 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
                 if (isConnected) {
                     statusTextViewRFID.setTextColor(ContextCompat.getColor(this, R.color.status_connected));
                     if (btnStart != null) btnStart.setEnabled(true);
+                    if (!wasConnected) {
+                        playConnectSound();
+                    }
                 } else {
                     statusTextViewRFID.setTextColor(ContextCompat.getColor(this, R.color.status_disconnected));
                     if (btnStart != null) btnStart.setEnabled(false);
                     if (btnStop != null) btnStop.setEnabled(false);
+                    if (wasConnected) {
+                        playDisconnectSound();
+                    }
                 }
+                wasConnected = isConnected;
             }
         });
+    }
+
+    private void playConnectSound() {
+        ToneGenerator toneGen = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100);
+        toneGen.startTone(ToneGenerator.TONE_PROP_ACK, 150);
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            toneGen.startTone(ToneGenerator.TONE_PROP_ACK, 150);
+            new Handler(Looper.getMainLooper()).postDelayed(toneGen::release, 200);
+        }, 200);
+    }
+
+    private void playDisconnectSound() {
+        ToneGenerator toneGen = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100);
+        toneGen.startTone(ToneGenerator.TONE_PROP_NACK, 300);
+        new Handler(Looper.getMainLooper()).postDelayed(toneGen::release, 350);
     }
 
     /**
