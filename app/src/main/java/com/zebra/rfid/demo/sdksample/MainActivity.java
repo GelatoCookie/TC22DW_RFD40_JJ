@@ -15,6 +15,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import com.google.android.material.button.MaterialButton;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -66,7 +67,7 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
     private Button btnStop;
     
     /** Button for Barcode Scanning. */
-    private Button btnScan;
+    private MaterialButton btnScan;
 
     /** Status dot indicator for connection state. */
     private View statusDot;
@@ -459,11 +460,11 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
         dwState = state;
         if (DW_STATE_WAITING.equals(state)) {
             btnScan.setIconResource(R.drawable.ic_barcode_large);
-            btnScan.setText("READ");
+            btnScan.setText("SCAN");
             btnScan.setTextColor(ContextCompat.getColor(this, R.color.text_secondary));
         } else if (DW_STATE_RECEIVED.equals(state)) {
             btnScan.setIconResource(R.drawable.ic_barcode_large_green);
-            btnScan.setText("READ");
+            btnScan.setText("SCAN");
             btnScan.setTextColor(ContextCompat.getColor(this, R.color.status_connected));
         }
     }
