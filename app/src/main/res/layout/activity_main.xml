@@ -90,17 +90,17 @@
                         android:id="@+id/scan"
                         style="@style/Widget.MaterialComponents.Button.TextButton.Icon"
                         android:layout_width="wrap_content"
-                        android:layout_height="32dp"
+                        android:layout_height="56dp"
                         android:insetTop="0dp"
                         android:insetBottom="0dp"
                         android:minHeight="0dp"
                         android:onClick="scanCode"
-                        android:paddingHorizontal="8dp"
-                        android:text="Scan"
-                        android:textSize="11sp"
-                        app:cornerRadius="4dp"
-                        app:icon="@android:drawable/ic_menu_camera"
-                        app:iconSize="14dp" />
+                        android:paddingHorizontal="16dp"
+                        android:text="READ"
+                        android:textSize="18sp"
+                        app:cornerRadius="8dp"
+                        app:icon="@drawable/ic_barcode_large"
+                        app:iconSize="40dp" />
                 </LinearLayout>
 
                 <TextView

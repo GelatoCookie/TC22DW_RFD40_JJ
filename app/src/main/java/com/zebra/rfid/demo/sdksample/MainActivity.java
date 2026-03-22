@@ -87,6 +87,10 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
     private static final int BLUETOOTH_PERMISSION_REQUEST_CODE = 100;
     private boolean wasConnected = false;
 
+    private static final String DW_STATE_WAITING = "WAITING";
+    private static final String DW_STATE_RECEIVED = "RECEIVED";
+    private String dwState = null;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -441,9 +445,27 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
                 tagLabelMap.put(val, symbology != null ? symbology : "Barcode");
                 rebuildTagList();
                 updateUniqueTagCount(tagSeenCount.size());
+                setBarcodeButtonState(DW_STATE_RECEIVED);
             }
             Toast.makeText(MainActivity.this, "Barcode: " + val + " (" + symbology + ")", Toast.LENGTH_SHORT).show();
         });
+    }
+
+    /**
+     * Sets the barcode button to WAITING (large gray icon, 'READ') or RECEIVED (large green icon, 'READ').
+     */
+    private void setBarcodeButtonState(String state) {
+        if (btnScan == null) return;
+        dwState = state;
+        if (DW_STATE_WAITING.equals(state)) {
+            btnScan.setIconResource(R.drawable.ic_barcode_large);
+            btnScan.setText("READ");
+            btnScan.setTextColor(ContextCompat.getColor(this, R.color.text_secondary));
+        } else if (DW_STATE_RECEIVED.equals(state)) {
+            btnScan.setIconResource(R.drawable.ic_barcode_large_green);
+            btnScan.setText("READ");
+            btnScan.setTextColor(ContextCompat.getColor(this, R.color.status_connected));
+        }
     }
 
     @Override
@@ -457,6 +479,9 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
             Log.d(TAG, "DataWedge Scanner Status Changed: " + status);
             if (scanResult != null) {
                 scanResult.setText(String.format("Scanner Status: %s", status));
+            }
+            if ("WAITING".equalsIgnoreCase(status)) {
+                setBarcodeButtonState(DW_STATE_WAITING);
             }
         });
     }
