@@ -133,34 +133,45 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
                     statusTextViewRFID.setTextColor(ContextCompat.getColor(this, R.color.status_connected));
                     if (btnStart != null) btnStart.setEnabled(true);
                     if (!wasConnected) {
+                        Log.d(TAG, "State change: disconnected -> connected, playing connect sound");
                         playConnectSound();
+                        wasConnected = true;
                     }
                 } else {
                     statusTextViewRFID.setTextColor(ContextCompat.getColor(this, R.color.status_disconnected));
                     if (btnStart != null) btnStart.setEnabled(false);
                     if (btnStop != null) btnStop.setEnabled(false);
                     if (wasConnected) {
+                        Log.d(TAG, "State change: connected -> disconnected, playing disconnect sound");
                         playDisconnectSound();
+                        wasConnected = false;
                     }
                 }
-                wasConnected = isConnected;
             }
         });
     }
 
     private void playConnectSound() {
-        ToneGenerator toneGen = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100);
-        toneGen.startTone(ToneGenerator.TONE_PROP_ACK, 150);
-        new Handler(Looper.getMainLooper()).postDelayed(() -> {
-            toneGen.startTone(ToneGenerator.TONE_PROP_ACK, 150);
-            new Handler(Looper.getMainLooper()).postDelayed(toneGen::release, 200);
-        }, 200);
+        try {
+            ToneGenerator toneGen = new ToneGenerator(AudioManager.STREAM_MUSIC, ToneGenerator.MAX_VOLUME);
+            toneGen.startTone(ToneGenerator.TONE_CDMA_ALERT_CALL_GUARD, 200);
+            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                toneGen.startTone(ToneGenerator.TONE_CDMA_ALERT_CALL_GUARD, 200);
+                new Handler(Looper.getMainLooper()).postDelayed(toneGen::release, 300);
+            }, 300);
+        } catch (Exception e) {
+            Log.e(TAG, "Error playing connect sound", e);
+        }
     }
 
     private void playDisconnectSound() {
-        ToneGenerator toneGen = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100);
-        toneGen.startTone(ToneGenerator.TONE_PROP_NACK, 300);
-        new Handler(Looper.getMainLooper()).postDelayed(toneGen::release, 350);
+        try {
+            ToneGenerator toneGen = new ToneGenerator(AudioManager.STREAM_MUSIC, ToneGenerator.MAX_VOLUME);
+            toneGen.startTone(ToneGenerator.TONE_CDMA_ABBR_ALERT, 400);
+            new Handler(Looper.getMainLooper()).postDelayed(toneGen::release, 500);
+        } catch (Exception e) {
+            Log.e(TAG, "Error playing disconnect sound", e);
+        }
     }
 
     /**
