@@ -1,3 +1,4 @@
+import com.google.android.material.snackbar.Snackbar;
 package com.zebra.rfid.demo.sdksample;
 
 import android.Manifest;
@@ -38,6 +39,14 @@ import java.util.Map;
  * performing inventory, and scanning barcodes.
  */
 public class MainActivity extends AppCompatActivity implements RFIDHandler.ResponseHandlerInterface, DataWedgeHandler.DataWedgeStatusListener {
+
+    /**
+     * Show a modern Snackbar message instead of Toast.
+     */
+    private void showSnackbar(String message) {
+        View root = findViewById(android.R.id.content);
+        Snackbar.make(root, message, Snackbar.LENGTH_SHORT).show();
+    }
 
     private static final String TAG = "MainActivity";
     private static final String PROFILE_NAME = "HHSampleAppProfile";
@@ -237,7 +246,7 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 rfidHandler.onCreate(this);
             } else {
-                Toast.makeText(this, "Bluetooth Permissions not granted", Toast.LENGTH_SHORT).show();
+                showSnackbar("Bluetooth Permissions not granted");
             }
         }
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -255,15 +264,15 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
         String result;
         if (id == R.id.antenna_settings) {
             result = rfidHandler.Test1();
-            Toast.makeText(this, result, Toast.LENGTH_SHORT).show();
+            showSnackbar(result);
             return true;
         } else if (id == R.id.Singulation_control) {
             result = rfidHandler.Test2();
-            Toast.makeText(this, result, Toast.LENGTH_SHORT).show();
+            showSnackbar(result);
             return true;
         } else if (id == R.id.Default) {
             result = rfidHandler.Defaults();
-            Toast.makeText(this, result, Toast.LENGTH_SHORT).show();
+            showSnackbar(result);
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -440,7 +449,7 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
                 rebuildTagList();
                 updateUniqueTagCount(tagSeenCount.size());
             }
-            Toast.makeText(MainActivity.this, "Barcode: " + val, Toast.LENGTH_SHORT).show();
+            showSnackbar("Barcode: " + val);
         });
     }
 
@@ -460,7 +469,7 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
                 barcodeStateHandler.removeCallbacks(revertToWaitingRunnable);
                 barcodeStateHandler.postDelayed(revertToWaitingRunnable, 2500);
             }
-            Toast.makeText(MainActivity.this, "Barcode: " + val + " (" + symbology + ")", Toast.LENGTH_SHORT).show();
+            showSnackbar("Barcode: " + val + " (" + symbology + ")");
         });
     }
 
@@ -483,7 +492,7 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
 
     @Override
     public void sendToast(String val) {
-        runOnUiThread(() -> Toast.makeText(MainActivity.this, val, Toast.LENGTH_SHORT).show());
+        runOnUiThread(() -> showSnackbar(val));
     }
 
     @Override
