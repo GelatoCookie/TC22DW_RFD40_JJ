@@ -376,7 +376,10 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
     /** Rebuilds the display list from the tagSeenCount map. Must be called on UI thread. */
     private void rebuildTagList() {
         tagList.clear();
-        for (Map.Entry<String, Integer> entry : tagSeenCount.entrySet()) {
+        // Show most recently seen at the top
+        ArrayList<Map.Entry<String, Integer>> entries = new ArrayList<>(tagSeenCount.entrySet());
+        for (int i = entries.size() - 1; i >= 0; i--) {
+            Map.Entry<String, Integer> entry = entries.get(i);
             String id = entry.getKey();
             int count = entry.getValue();
             String label = tagLabelMap.get(id);
