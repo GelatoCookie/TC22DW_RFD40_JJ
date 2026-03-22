@@ -40,8 +40,9 @@
 
                 <View
                     android:id="@+id/statusDot"
-                    android:layout_width="10dp"
-                    android:layout_height="10dp"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginEnd="8dp"
                     android:background="@drawable/status_dot_disconnected" />
 
                 <TextView

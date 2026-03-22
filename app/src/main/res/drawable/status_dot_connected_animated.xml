@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt">
+    <aapt:attr name="android:drawable">
+        <vector
+            android:width="48dp"
+            android:height="48dp"
+            android:viewportWidth="24"
+            android:viewportHeight="24">
+            <path
+                android:name="circle"
+                android:pathData="M12,2A10,10 0 1,0 12,22A10,10 0 1,0 12,2Z"
+                android:fillColor="#43A047"/>
+        </vector>
+    </aapt:attr>
+    <target android:name="circle" android:animation="@animator/flash_green" />
+</animated-vector>
