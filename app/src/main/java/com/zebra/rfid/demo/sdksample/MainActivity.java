@@ -23,7 +23,8 @@ import androidx.core.content.ContextCompat;
 import com.zebra.rfid.api3.TagData;
 
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * Main Activity for the RFID Sample application.
@@ -68,8 +69,8 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
     /** Handler for DataWedge status notifications. */
     private DataWedgeHandler dataWedgeHandler;
     
-    /** Set to track unique tags discovered during the current session. */
-    private final HashSet<String> tagSet = new HashSet<>();
+    /** Map to track tag/barcode IDs and their seen counts. */
+    private final LinkedHashMap<String, Integer> tagSeenCount = new LinkedHashMap<>();
     
     private static final int BLUETOOTH_PERMISSION_REQUEST_CODE = 100;
 
@@ -251,7 +252,7 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
 
     private void clearTagData() {
         runOnUiThread(() -> {
-            tagSet.clear();
+            tagSeenCount.clear();
             tagList.clear();
             if (tagAdapter != null) {
                 tagAdapter.notifyDataSetChanged();
@@ -287,27 +288,32 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
             if (tag == null) continue;
             String tagId = tag.getTagID();
             if (tagId != null) {
-                candidates.add(new String[]{tagId, tagId + " (RSSI: " + tag.getPeakRSSI() + ")"});
+                candidates.add(new String[]{tagId, String.valueOf(tag.getPeakRSSI())});
             }
         }
 
         if (!candidates.isEmpty()) {
             runOnUiThread(() -> {
-                ArrayList<String> newTags = new ArrayList<>();
                 for (String[] pair : candidates) {
-                    if (!tagSet.contains(pair[0])) {
-                        tagSet.add(pair[0]);
-                        newTags.add(pair[1]);
-                    }
+                    String tagId = pair[0];
+                    String rssi = pair[1];
+                    int count = tagSeenCount.getOrDefault(tagId, 0) + 1;
+                    tagSeenCount.put(tagId, count);
                 }
-                if (!newTags.isEmpty()) {
-                    tagList.addAll(0, newTags);
-                    if (tagAdapter != null) {
-                        tagAdapter.notifyDataSetChanged();
-                    }
-                    updateUniqueTagCount(tagSet.size());
-                }
+                rebuildTagList();
+                updateUniqueTagCount(tagSeenCount.size());
             });
+        }
+    }
+
+    /** Rebuilds the display list from the tagSeenCount map. Must be called on UI thread. */
+    private void rebuildTagList() {
+        tagList.clear();
+        for (Map.Entry<String, Integer> entry : tagSeenCount.entrySet()) {
+            tagList.add(entry.getKey() + "  x" + entry.getValue());
+        }
+        if (tagAdapter != null) {
+            tagAdapter.notifyDataSetChanged();
         }
     }
 
@@ -339,13 +345,11 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
             if (scanResult != null) {
                 scanResult.setText(String.format("Scan Result : %s", val != null ? val : ""));
             }
-            if (val != null && !tagSet.contains(val)) {
-                tagSet.add(val);
-                tagList.add(0, val + " (Barcode)");
-                if (tagAdapter != null) {
-                    tagAdapter.notifyDataSetChanged();
-                }
-                updateUniqueTagCount(tagSet.size());
+            if (val != null) {
+                int count = tagSeenCount.getOrDefault(val, 0) + 1;
+                tagSeenCount.put(val, count);
+                rebuildTagList();
+                updateUniqueTagCount(tagSeenCount.size());
             }
             Toast.makeText(MainActivity.this, "Barcode: " + val, Toast.LENGTH_SHORT).show();
         });
@@ -356,13 +360,11 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
             if (scanResult != null) {
                 scanResult.setText(String.format("Scan Result: %s (%s)", val != null ? val : "", symbology != null ? symbology : ""));
             }
-            if (val != null && !tagSet.contains(val)) {
-                tagSet.add(val);
-                tagList.add(0, val + " (" + symbology + ")");
-                if (tagAdapter != null) {
-                    tagAdapter.notifyDataSetChanged();
-                }
-                updateUniqueTagCount(tagSet.size());
+            if (val != null) {
+                int count = tagSeenCount.getOrDefault(val, 0) + 1;
+                tagSeenCount.put(val, count);
+                rebuildTagList();
+                updateUniqueTagCount(tagSeenCount.size());
             }
             Toast.makeText(MainActivity.this, "Barcode: " + val + " (" + symbology + ")", Toast.LENGTH_SHORT).show();
         });
