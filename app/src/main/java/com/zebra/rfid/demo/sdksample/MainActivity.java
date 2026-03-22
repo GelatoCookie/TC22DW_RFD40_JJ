@@ -451,7 +451,7 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
                 updateUniqueTagCount(tagSeenCount.size());
                 setBarcodeButtonState(DW_STATE_RECEIVED);
                 barcodeStateHandler.removeCallbacks(revertToWaitingRunnable);
-                barcodeStateHandler.postDelayed(revertToWaitingRunnable, 1200);
+                barcodeStateHandler.postDelayed(revertToWaitingRunnable, 2500);
             }
             Toast.makeText(MainActivity.this, "Barcode: " + val + " (" + symbology + ")", Toast.LENGTH_SHORT).show();
         });
