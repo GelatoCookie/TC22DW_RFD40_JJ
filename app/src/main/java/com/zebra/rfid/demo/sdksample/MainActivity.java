@@ -5,8 +5,8 @@ import android.Manifest;
 import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
 import android.content.pm.PackageManager;
-import android.media.AudioManager;
-import android.media.ToneGenerator;
+// import android.media.AudioManager;
+// import android.media.ToneGenerator;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -188,29 +188,15 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
     }
 
     private void playConnectBeep() {
-        playBarcodeBeep();
-        new Handler(Looper.getMainLooper()).postDelayed(this::playBarcodeBeep, 250);
+        SoundUtils.playConnectBeep();
     }
 
     private void playDisconnectAlarm() {
-        try {
-            ToneGenerator toneGen = new ToneGenerator(AudioManager.STREAM_MUSIC, ToneGenerator.MAX_VOLUME);
-            // Use TONE_SUP_ERROR for a distinct alarm sound
-            toneGen.startTone(ToneGenerator.TONE_SUP_ERROR, 500);
-            new Handler(Looper.getMainLooper()).postDelayed(toneGen::release, 600);
-        } catch (Exception e) {
-            Log.e(TAG, "Error playing disconnect alarm", e);
-        }
+        SoundUtils.playDisconnectAlarm();
     }
 
     private void playBarcodeBeep() {
-        try {
-            ToneGenerator toneGen = new ToneGenerator(AudioManager.STREAM_MUSIC, ToneGenerator.MAX_VOLUME);
-            toneGen.startTone(ToneGenerator.TONE_PROP_BEEP, 150);
-            new Handler(Looper.getMainLooper()).postDelayed(toneGen::release, 250);
-        } catch (Exception e) {
-            Log.e(TAG, "Error playing barcode beep", e);
-        }
+        SoundUtils.playBarcodeBeep();
     }
 
     /**
