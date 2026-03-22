@@ -92,7 +92,7 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
         return "Default settings applied";
     }
 
-    private boolean isReaderConnected() {
+    public boolean isReaderConnected() {
         return reader != null && reader.isConnected();
     }
 
@@ -320,7 +320,7 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
         }
     }
 
-    private synchronized void disconnect() {
+    public synchronized void disconnect() {
         try {
             if (reader != null) {
                 if (eventHandler != null) reader.Events.removeEventsListener(eventHandler);

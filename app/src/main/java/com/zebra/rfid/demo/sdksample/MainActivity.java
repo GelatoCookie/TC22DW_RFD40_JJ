@@ -1,8 +1,8 @@
 
 package com.zebra.rfid.demo.sdksample;
-import com.google.android.material.snackbar.Snackbar;
 
 import android.Manifest;
+import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
 import android.content.pm.PackageManager;
 import android.media.AudioManager;
@@ -15,19 +15,22 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.LinearInterpolator;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
-import com.google.android.material.button.MaterialButton;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.snackbar.Snackbar;
 import com.zebra.rfid.api3.TagData;
 
 import java.util.ArrayList;
@@ -46,43 +49,35 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
      */
     private void showSnackbar(String message) {
         View root = findViewById(android.R.id.content);
-        Snackbar.make(root, message, Snackbar.LENGTH_SHORT).show();
+        if (root != null) {
+            Snackbar.make(root, message, Snackbar.LENGTH_SHORT).show();
+        }
     }
 
     private static final String TAG = "MainActivity";
     private static final String PROFILE_NAME = "HHSampleAppProfile";
     
-    /** TextView to display RFID connection and operation status. */
+    /** UI components */
     private TextView statusTextViewRFID;
-        /**
-         * Public accessor for statusTextViewRFID for use by RFIDHandler.
-         */
-        public TextView getStatusTextViewRFID() {
-            return statusTextViewRFID;
-        }
-    
-    /** ListView to display scanned RFID tag data. */
-    private ListView tagListView;
-    
-    /** Adapter for the tag list. */
-    private ArrayAdapter<String> tagAdapter;
-    
-    /** List to hold tag strings for the adapter. */
-    private final ArrayList<String> tagList = new ArrayList<>();
-    /** TextView to display barcode scan results or scanner status. */
     private TextView scanResult;
-
-    /** Buttons for RFID Inventory control. */
-    private Button btnStart;
-    private Button btnStop;
-    
-    /** Button for Barcode Scanning. */
-    private MaterialButton btnScan;
-
-    /** Status dot indicator for connection state. */
-    private View statusDot;
-    /** Label showing unique tag count in RFID card header. */
     private TextView tagCountLabel;
+    private ImageView statusDotIcon;
+    private MaterialButton btnScan;
+    private MaterialButton btnStart;
+    private MaterialButton btnStop;
+    private ListView tagListView;
+    private ArrayList<String> tagList = new ArrayList<>();
+    private ArrayAdapter<String> tagAdapter;
+    private ObjectAnimator flashAnimator;
+
+    private boolean isConnected = false;
+
+    /**
+     * Public accessor for statusTextViewRFID for use by RFIDHandler.
+     */
+    public TextView getStatusTextViewRFID() {
+        return statusTextViewRFID;
+    }
     
     /** Handler for RFID and Scanner related operations. */
     private RFIDHandler rfidHandler;
@@ -96,14 +91,6 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
     private final LinkedHashMap<String, String> tagLabelMap = new LinkedHashMap<>();
     
     private static final int BLUETOOTH_PERMISSION_REQUEST_CODE = 100;
-    private boolean wasConnected = false;
-
-    private static final String DW_STATE_WAITING = "WAITING";
-    private static final String DW_STATE_RECEIVED = "RECEIVED";
-    private String dwState = null;
-
-    private Handler barcodeStateHandler = new Handler(Looper.getMainLooper());
-    private Runnable revertToWaitingRunnable = () -> setBarcodeButtonState(DW_STATE_WAITING);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -114,6 +101,24 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
         setSupportActionBar(toolbar);
 
         statusTextViewRFID = findViewById(R.id.textViewStatusrfid);
+        scanResult = findViewById(R.id.scanResult);
+        tagCountLabel = findViewById(R.id.tagCountLabel);
+        btnScan = findViewById(R.id.scan);
+        btnStart = findViewById(R.id.TestButton);
+        btnStop = findViewById(R.id.TestButton2);
+        tagListView = findViewById(R.id.tag_list);
+
+        // Find status dot as ImageView to support flash animation
+        View statusDot = findViewById(R.id.statusDot);
+        if (statusDot instanceof ImageView) {
+            statusDotIcon = (ImageView) statusDot;
+        }
+
+        tagAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, tagList);
+        if (tagListView != null) {
+            tagListView.setAdapter(tagAdapter);
+        }
+
         if (statusTextViewRFID != null) {
             statusTextViewRFID.setOnClickListener(v -> {
                 if (rfidHandler != null) {
@@ -122,93 +127,79 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
             });
         }
 
-        scanResult = findViewById(R.id.scanResult);
-        
-        // Initialize ListView and Adapter
-        tagListView = findViewById(R.id.tag_list);
-        statusDot = findViewById(R.id.statusDot);
-        tagCountLabel = findViewById(R.id.tagCountLabel);
-        tagAdapter = new ArrayAdapter<>(this, R.layout.list_item_tag, R.id.tag_text, tagList);
-        if (tagListView != null) {
-            tagListView.setAdapter(tagAdapter);
-        }
-        
-        btnStart = findViewById(R.id.TestButton);
-        btnStop = findViewById(R.id.TestButton2);
-        btnScan = findViewById(R.id.scan);
-        
-        // Initially inventory is not running and reader is not connected
-        if (btnStart != null) btnStart.setEnabled(false);
-        if (btnStop != null) btnStop.setEnabled(false);
-        
-        // Initially disable scan button until session established
-        if (btnScan != null) btnScan.setEnabled(false);
-
         rfidHandler = new RFIDHandler();
         dataWedgeHandler = new DataWedgeHandler(this, this);
         checkPermissionsAndInit();
     }
 
     /**
-     * Updates the reader status UI with appropriate colors.
-     * @param status The status message to display.
-     * @param isConnected Whether the reader is connected.
+     * Updates the reader status UI.
      */
-    public void updateReaderStatus(String status, boolean isConnected) {
+    public void updateReaderStatus(String status, boolean connected) {
+        boolean stateChanged = (this.isConnected != connected);
+        this.isConnected = connected;
         runOnUiThread(() -> {
             if (statusTextViewRFID != null) {
                 statusTextViewRFID.setText(status);
-                if (isConnected) {
-                    statusTextViewRFID.setTextColor(ContextCompat.getColor(this, R.color.status_connected));
-                    if (statusDot != null) {
-                        statusDot.setBackgroundResource(R.drawable.ic_radio_connected);
-                        android.view.animation.Animation pulse = android.view.animation.AnimationUtils.loadAnimation(this, R.anim.pulse);
-                        statusDot.startAnimation(pulse);
-                    }
-                    if (btnStart != null) btnStart.setEnabled(true);
-                    if (!wasConnected) {
-                        Log.d(TAG, "State change: disconnected -> connected, playing connect sound");
-                        playConnectSound();
-                        wasConnected = true;
+                int color = connected ? ContextCompat.getColor(this, R.color.status_connected) 
+                                       : ContextCompat.getColor(this, R.color.status_disconnected);
+                statusTextViewRFID.setTextColor(color);
+            }
+            
+            if (statusDotIcon != null) {
+                if (connected) {
+                    statusDotIcon.setImageResource(R.drawable.ic_live_pulse);
+                    startFlashAnimation(statusDotIcon);
+                    if (stateChanged) {
+                        playConnectBeep();
                     }
                 } else {
-                    statusTextViewRFID.setTextColor(ContextCompat.getColor(this, R.color.status_disconnected));
-                    if (statusDot != null) {
-                        statusDot.setBackgroundResource(R.drawable.ic_radio_disconnected);
-                        statusDot.clearAnimation();
-                    }
-                    if (btnStart != null) btnStart.setEnabled(false);
-                    if (btnStop != null) btnStop.setEnabled(false);
-                    if (wasConnected) {
-                        Log.d(TAG, "State change: connected -> disconnected, playing disconnect sound");
-                        playDisconnectSound();
-                        wasConnected = false;
+                    statusDotIcon.setImageResource(R.drawable.ic_radio_disconnected);
+                    stopFlashAnimation();
+                    if (stateChanged) {
+                        playDisconnectAlarm();
                     }
                 }
             }
+            invalidateOptionsMenu();
         });
     }
 
-    private void playConnectSound() {
-        try {
-            ToneGenerator toneGen = new ToneGenerator(AudioManager.STREAM_MUSIC, ToneGenerator.MAX_VOLUME);
-            toneGen.startTone(ToneGenerator.TONE_CDMA_ALERT_CALL_GUARD, 200);
-            new Handler(Looper.getMainLooper()).postDelayed(() -> {
-                toneGen.startTone(ToneGenerator.TONE_CDMA_ALERT_CALL_GUARD, 200);
-                new Handler(Looper.getMainLooper()).postDelayed(toneGen::release, 300);
-            }, 300);
-        } catch (Exception e) {
-            Log.e(TAG, "Error playing connect sound", e);
+    private void startFlashAnimation(View view) {
+        if (flashAnimator == null) {
+            flashAnimator = ObjectAnimator.ofFloat(view, "alpha", 1f, 0.2f);
+            flashAnimator.setDuration(800);
+            flashAnimator.setInterpolator(new LinearInterpolator());
+            flashAnimator.setRepeatCount(Animation.INFINITE);
+            flashAnimator.setRepeatMode(ObjectAnimator.REVERSE);
+        }
+        if (!flashAnimator.isRunning()) {
+            flashAnimator.start();
         }
     }
 
-    private void playDisconnectSound() {
+    private void stopFlashAnimation() {
+        if (flashAnimator != null && flashAnimator.isRunning()) {
+            flashAnimator.cancel();
+            if (statusDotIcon != null) {
+                statusDotIcon.setAlpha(1f);
+            }
+        }
+    }
+
+    private void playConnectBeep() {
+        playBarcodeBeep();
+        new Handler(Looper.getMainLooper()).postDelayed(this::playBarcodeBeep, 250);
+    }
+
+    private void playDisconnectAlarm() {
         try {
             ToneGenerator toneGen = new ToneGenerator(AudioManager.STREAM_MUSIC, ToneGenerator.MAX_VOLUME);
-            toneGen.startTone(ToneGenerator.TONE_CDMA_ABBR_ALERT, 400);
-            new Handler(Looper.getMainLooper()).postDelayed(toneGen::release, 500);
+            // Use TONE_SUP_ERROR for a distinct alarm sound
+            toneGen.startTone(ToneGenerator.TONE_SUP_ERROR, 500);
+            new Handler(Looper.getMainLooper()).postDelayed(toneGen::release, 600);
         } catch (Exception e) {
-            Log.e(TAG, "Error playing disconnect sound", e);
+            Log.e(TAG, "Error playing disconnect alarm", e);
         }
     }
 
@@ -260,21 +251,33 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
     }
 
     @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        MenuItem connectItem = menu.findItem(R.id.menu_connect);
+        MenuItem disconnectItem = menu.findItem(R.id.menu_disconnect);
+        if (connectItem != null && disconnectItem != null) {
+            connectItem.setVisible(!isConnected);
+            disconnectItem.setVisible(isConnected);
+        }
+        return super.onPrepareOptionsMenu(menu);
+    }
+
+    @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-                if (id == R.id.menu_connect) {
-                    if (rfidHandler != null) {
-                        rfidHandler.toggleConnection();
-                        showSnackbar("Connecting...");
-                    }
-                    return true;
-                } else if (id == R.id.menu_disconnect) {
-                    if (rfidHandler != null) {
-                        rfidHandler.disconnect();
-                        showSnackbar("Disconnecting...");
-                    }
-                    return true;
-                }
         int id = item.getItemId();
+        if (id == R.id.menu_connect) {
+            if (rfidHandler != null) {
+                rfidHandler.toggleConnection();
+                showSnackbar("Connecting...");
+            }
+            return true;
+        } else if (id == R.id.menu_disconnect) {
+            if (rfidHandler != null) {
+                rfidHandler.disconnect();
+                showSnackbar("Disconnecting...");
+            }
+            return true;
+        }
+        
         String result;
         if (id == R.id.antenna_settings) {
             result = rfidHandler.Test1();
@@ -401,7 +404,6 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
             runOnUiThread(() -> {
                 for (String[] pair : candidates) {
                     String tagId = pair[0];
-                    String rssi = pair[1];
                     int count = tagSeenCount.getOrDefault(tagId, 0) + 1;
                     tagSeenCount.put(tagId, count);
                 }
@@ -452,79 +454,37 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
     @Override
     public void barcodeData(String val) {
         runOnUiThread(() -> {
-            playBarcodeBeep();
             if (scanResult != null) {
-                scanResult.setText(String.format("Scan Result : %s", val != null ? val : ""));
+                scanResult.setText(val);
             }
-            if (val != null) {
-                int count = tagSeenCount.getOrDefault(val, 0) + 1;
-                tagSeenCount.put(val, count);
-                tagLabelMap.put(val, "Barcode");
-                rebuildTagList();
-                updateUniqueTagCount(tagSeenCount.size());
-            }
-            showSnackbar("Barcode: " + val);
-        });
-    }
-
-    public void barcodeData(String val, String symbology) {
-        runOnUiThread(() -> {
             playBarcodeBeep();
-            if (scanResult != null) {
-                scanResult.setText(String.format("Scan Result: %s (%s)", val != null ? val : "", symbology != null ? symbology : ""));
-            }
-            if (val != null) {
-                int count = tagSeenCount.getOrDefault(val, 0) + 1;
-                tagSeenCount.put(val, count);
-                tagLabelMap.put(val, symbology != null ? symbology : "Barcode");
-                rebuildTagList();
-                updateUniqueTagCount(tagSeenCount.size());
-                setBarcodeButtonState(DW_STATE_RECEIVED);
-                barcodeStateHandler.removeCallbacks(revertToWaitingRunnable);
-                barcodeStateHandler.postDelayed(revertToWaitingRunnable, 2500);
-            }
-            showSnackbar("Barcode: " + val + " (" + symbology + ")");
         });
-    }
-
-    /**
-     * Sets the barcode button to WAITING (large gray icon, 'READ') or RECEIVED (large green icon, 'READ').
-     */
-    private void setBarcodeButtonState(String state) {
-        if (btnScan == null) return;
-        dwState = state;
-        if (DW_STATE_WAITING.equals(state)) {
-            btnScan.setIconResource(R.drawable.ic_barcode_large_black);
-            btnScan.setText("SCAN");
-            btnScan.setTextColor(ContextCompat.getColor(this, R.color.text_secondary));
-        } else if (DW_STATE_RECEIVED.equals(state)) {
-            btnScan.setIconResource(R.drawable.ic_barcode_large_green);
-            btnScan.setText("SCAN");
-            btnScan.setTextColor(ContextCompat.getColor(this, R.color.status_connected));
-        }
     }
 
     @Override
     public void sendToast(String val) {
-        runOnUiThread(() -> showSnackbar(val));
+        runOnUiThread(() -> Toast.makeText(MainActivity.this, val, Toast.LENGTH_SHORT).show());
     }
 
     @Override
     public void onScannerStatusChange(String status) {
-        runOnUiThread(() -> {
-            Log.d(TAG, "DataWedge Scanner Status Changed: " + status);
-            if (scanResult != null) {
-                scanResult.setText(String.format("Scanner Status: %s", status));
-            }
-            if ("WAITING".equalsIgnoreCase(status) && !DW_STATE_RECEIVED.equals(dwState)) {
-                setBarcodeButtonState(DW_STATE_WAITING);
-            }
-        });
+        Log.d(TAG, "Scanner Status: " + status);
     }
 
     @Override
     public void onBarcodeScanned(String barcode, String symbology) {
-        barcodeData(barcode, symbology);
+        runOnUiThread(() -> {
+            if (scanResult != null) {
+                scanResult.setText(barcode + " (" + symbology + ")");
+            }
+            playBarcodeBeep();
+            
+            // Also add to the list
+            int count = tagSeenCount.getOrDefault(barcode, 0) + 1;
+            tagSeenCount.put(barcode, count);
+            tagLabelMap.put(barcode, symbology);
+            rebuildTagList();
+            updateUniqueTagCount(tagSeenCount.size());
+        });
     }
-
 }

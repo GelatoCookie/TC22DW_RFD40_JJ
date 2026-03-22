@@ -3,19 +3,16 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:context="com.zebra.rfid.demo.sdksample.MainActivity">
 
-
-
-
     <item
         android:id="@+id/menu_connect"
         android:title="@string/menu_connect"
-        app:icon="@android:drawable/ic_menu_share"
-        app:showAsAction="ifRoom|withText" />
+        android:icon="@drawable/ic_radio_connected"
+        app:showAsAction="always" />
     <item
         android:id="@+id/menu_disconnect"
         android:title="@string/menu_disconnect"
-        app:icon="@android:drawable/ic_menu_close_clear_cancel"
-        app:showAsAction="ifRoom|withText" />
+        android:icon="@drawable/ic_radio_disconnected"
+        app:showAsAction="always" />
 
     <item
         android:id="@+id/antenna_settings"
@@ -29,6 +26,5 @@
         android:id="@+id/Default"
         android:title="@string/Defaults"
         app:showAsAction="never" />
-
 
 </menu>

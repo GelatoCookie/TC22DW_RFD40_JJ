@@ -53,7 +53,7 @@
                     android:layout_weight="1"
                     android:text="Disconnected"
                     android:textColor="@color/status_disconnected"
-                    android:textSize="12sp"
+                    android:textSize="16sp"
                     android:textStyle="bold" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
@@ -84,7 +84,7 @@
                         android:text="BARCODE"
                         android:textAllCaps="true"
                         android:textColor="@color/colorPrimary"
-                        android:textSize="10sp"
+                        android:textSize="16sp"
                         android:textStyle="bold" />
 
                     <com.google.android.material.button.MaterialButton
