@@ -1,55 +1,65 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background_light"
+    android:background="@color/background"
+    android:orientation="vertical"
     tools:context=".MainActivity">
+
+    <!-- Toolbar -->
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@color/colorPrimary"
+        app:popupTheme="@style/ThemeOverlay.MaterialComponents.Light"
+        app:title="@string/app_name"
+        app:titleTextColor="@color/white" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:padding="12dp">
+        android:padding="6dp">
 
-        <!-- Status Card -->
+        <!-- Status Row -->
         <com.google.android.material.card.MaterialCardView
-            style="@style/CardViewStyle"
+            style="@style/CardStyle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="12dp">
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="10dp"
+                android:paddingVertical="8dp">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Reader Status"
-                    android:textAllCaps="true"
-                    android:textColor="@color/colorPrimary"
-                    android:textSize="12sp"
-                    android:textStyle="bold" />
+                <View
+                    android:id="@+id/statusDot"
+                    android:layout_width="10dp"
+                    android:layout_height="10dp"
+                    android:background="@drawable/status_dot_disconnected" />
 
                 <TextView
                     android:id="@+id/textViewStatusrfid"
-                    android:layout_width="match_parent"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1"
                     android:text="Disconnected"
                     android:textColor="@color/status_disconnected"
-                    android:textSize="16sp"
+                    android:textSize="12sp"
                     android:textStyle="bold" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
         <!-- Barcode Scanner Card -->
         <com.google.android.material.card.MaterialCardView
-            android:id="@+id/barcode_card"
-            style="@style/CardViewStyle"
+            style="@style/CardStyle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
 
@@ -57,45 +67,59 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="12dp">
+                android:padding="8dp">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Barcode Scanner"
-                    android:textAllCaps="true"
-                    android:textColor="@color/colorPrimary"
-                    android:textSize="12sp"
-                    android:textStyle="bold" />
-
-                <Button
-                    android:id="@+id/scan"
-                    style="@style/Widget.MaterialComponents.Button.Icon"
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:onClick="scanCode"
-                    android:text="Pull Trigger"
-                    android:insetTop="0dp"
-                    android:insetBottom="0dp"
-                    app:icon="@android:drawable/ic_menu_camera" />
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:letterSpacing="0.1"
+                        android:text="BARCODE"
+                        android:textAllCaps="true"
+                        android:textColor="@color/colorPrimary"
+                        android:textSize="10sp"
+                        android:textStyle="bold" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/scan"
+                        style="@style/Widget.MaterialComponents.Button.TextButton.Icon"
+                        android:layout_width="wrap_content"
+                        android:layout_height="32dp"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:minHeight="0dp"
+                        android:onClick="scanCode"
+                        android:paddingHorizontal="8dp"
+                        android:text="Scan"
+                        android:textSize="11sp"
+                        app:cornerRadius="4dp"
+                        app:icon="@android:drawable/ic_menu_camera"
+                        app:iconSize="14dp" />
+                </LinearLayout>
 
                 <TextView
                     android:id="@+id/scanResult"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:background="@color/background_light"
-                    android:padding="4dp"
-                    android:text="Scan Result"
-                    android:textColor="@color/black"
-                    android:textSize="14sp" />
+                    android:layout_marginTop="2dp"
+                    android:ellipsize="end"
+                    android:fontFamily="monospace"
+                    android:maxLines="2"
+                    android:text="No scan yet"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
         <!-- RFID Inventory Card -->
         <com.google.android.material.card.MaterialCardView
-            style="@style/CardViewStyle"
+            style="@style/CardStyle"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1">
@@ -104,67 +128,97 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="8dp">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="RFID Inventory"
-                    android:textAllCaps="true"
-                    android:textColor="@color/colorPrimary"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
-
+                <!-- Header row -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
+                    android:gravity="center_vertical"
                     android:orientation="horizontal">
 
-                    <Button
-                        android:id="@+id/TestButton"
-                        style="@style/Widget.MaterialComponents.Button"
+                    <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:letterSpacing="0.1"
+                        android:text="RFID INVENTORY"
+                        android:textAllCaps="true"
+                        android:textColor="@color/colorPrimary"
+                        android:textSize="10sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tagCountLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0 tags"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- Buttons row -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/TestButton"
+                        style="@style/CompactButton"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
                         android:layout_marginEnd="4dp"
                         android:layout_weight="1"
                         android:onClick="StartInventory"
-                        android:text="Start" />
+                        android:text="Start"
+                        android:textSize="12sp" />
 
-                    <Button
+                    <com.google.android.material.button.MaterialButton
                         android:id="@+id/TestButton2"
-                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        style="@style/CompactButtonOutlined"
                         android:layout_width="0dp"
-                        android:layout_height="wrap_content"
+                        android:layout_height="36dp"
                         android:layout_marginStart="4dp"
                         android:layout_weight="1"
                         android:onClick="StopInventory"
-                        android:text="Stop" />
+                        android:text="Stop"
+                        android:textSize="12sp" />
                 </LinearLayout>
 
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
-                    android:layout_marginTop="8dp"
-                    android:background="#DDDDDD" />
+                    android:layout_marginTop="4dp"
+                    android:background="@color/divider" />
 
+                <!-- Column headers -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:orientation="horizontal">
+                    android:layout_marginTop="4dp"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="4dp">
 
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Tag Data"
+                        android:text="Tag / Barcode"
+                        android:textAllCaps="true"
+                        android:textColor="@color/text_hint"
+                        android:textSize="9sp"
                         android:textStyle="bold" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="RSSI"
+                        android:text="Count"
+                        android:textAllCaps="true"
+                        android:textColor="@color/text_hint"
+                        android:textSize="9sp"
                         android:textStyle="bold" />
                 </LinearLayout>
 
@@ -172,12 +226,13 @@
                     android:id="@+id/tag_list"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:layout_marginTop="4dp"
-                    android:divider="#EEEEEE"
-                    android:dividerHeight="1dp" />
+                    android:layout_marginTop="2dp"
+                    android:divider="@color/divider"
+                    android:dividerHeight="1dp"
+                    android:scrollbarStyle="outsideOverlay" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
     </LinearLayout>
 
-</androidx.coordinatorlayout.widget.CoordinatorLayout>
+</LinearLayout>

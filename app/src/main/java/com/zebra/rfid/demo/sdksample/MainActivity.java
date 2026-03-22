@@ -22,6 +22,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.ContextCompat;
 
 import com.zebra.rfid.api3.TagData;
@@ -66,6 +67,11 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
     
     /** Button for Barcode Scanning. */
     private Button btnScan;
+
+    /** Status dot indicator for connection state. */
+    private View statusDot;
+    /** Label showing unique tag count in RFID card header. */
+    private TextView tagCountLabel;
     
     /** Handler for RFID and Scanner related operations. */
     private RFIDHandler rfidHandler;
@@ -86,6 +92,9 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+
         statusTextViewRFID = findViewById(R.id.textViewStatusrfid);
         if (statusTextViewRFID != null) {
             statusTextViewRFID.setOnClickListener(v -> {
@@ -99,7 +108,9 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
         
         // Initialize ListView and Adapter
         tagListView = findViewById(R.id.tag_list);
-        tagAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, tagList);
+        statusDot = findViewById(R.id.statusDot);
+        tagCountLabel = findViewById(R.id.tagCountLabel);
+        tagAdapter = new ArrayAdapter<>(this, R.layout.list_item_tag, R.id.tag_text, tagList);
         if (tagListView != null) {
             tagListView.setAdapter(tagAdapter);
         }
@@ -131,6 +142,7 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
                 statusTextViewRFID.setText(status);
                 if (isConnected) {
                     statusTextViewRFID.setTextColor(ContextCompat.getColor(this, R.color.status_connected));
+                    if (statusDot != null) statusDot.setBackgroundResource(R.drawable.status_dot_connected);
                     if (btnStart != null) btnStart.setEnabled(true);
                     if (!wasConnected) {
                         Log.d(TAG, "State change: disconnected -> connected, playing connect sound");
@@ -139,6 +151,7 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
                     }
                 } else {
                     statusTextViewRFID.setTextColor(ContextCompat.getColor(this, R.color.status_disconnected));
+                    if (statusDot != null) statusDot.setBackgroundResource(R.drawable.status_dot_disconnected);
                     if (btnStart != null) btnStart.setEnabled(false);
                     if (btnStop != null) btnStop.setEnabled(false);
                     if (wasConnected) {
@@ -308,6 +321,9 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
             if (tagAdapter != null) {
                 tagAdapter.notifyDataSetChanged();
             }
+            if (tagCountLabel != null) {
+                tagCountLabel.setText("0 tags");
+            }
         });
     }
 
@@ -376,13 +392,8 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
     }
 
     private void updateUniqueTagCount(int totalUniqueTags) {
-        if (statusTextViewRFID != null && statusTextViewRFID.getText() != null) {
-            String statusStr = statusTextViewRFID.getText().toString();
-            if (statusStr.contains("Connected")) {
-                String[] parts = statusStr.split("\n");
-                String currentStatus = parts.length > 0 ? parts[0] : statusStr;
-                statusTextViewRFID.setText(currentStatus + "\nUnique Tags: " + totalUniqueTags);
-            }
+        if (tagCountLabel != null) {
+            tagCountLabel.setText(totalUniqueTags + (totalUniqueTags == 1 ? " tag" : " tags"));
         }
     }
 

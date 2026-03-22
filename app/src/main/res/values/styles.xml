@@ -1,27 +1,34 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="AppTheme" parent="Theme.MaterialComponents.Light.DarkActionBar">
-        <!-- Primary brand color. -->
+    <!-- Base application theme (NoActionBar — uses MaterialToolbar). -->
+    <style name="AppTheme" parent="Theme.MaterialComponents.Light.NoActionBar">
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryVariant">@color/colorPrimaryDark</item>
         <item name="colorOnPrimary">@color/white</item>
-        <!-- Secondary brand color. -->
         <item name="colorSecondary">@color/colorAccent</item>
         <item name="colorSecondaryVariant">@color/colorAccent</item>
         <item name="colorOnSecondary">@color/white</item>
-        <!-- Status bar color. -->
-        <item name="android:statusBarColor" tools:targetApi="l">?attr/colorPrimaryVariant</item>
+        <item name="android:statusBarColor" tools:targetApi="l">@color/colorPrimaryDark</item>
     </style>
 
-    <style name="AppTheme.NoActionBar">
-        <item name="windowActionBar">false</item>
-        <item name="windowNoTitle">true</item>
-    </style>
-
-    <style name="CardViewStyle">
-        <item name="cardElevation">4dp</item>
-        <item name="cardCornerRadius">8dp</item>
+    <style name="CardStyle">
+        <item name="cardElevation">2dp</item>
+        <item name="cardCornerRadius">10dp</item>
         <item name="cardBackgroundColor">@color/card_background</item>
-        <item name="android:layout_margin">8dp</item>
+        <item name="android:layout_marginHorizontal">0dp</item>
+        <item name="android:layout_marginVertical">3dp</item>
+    </style>
+
+    <style name="CompactButton" parent="Widget.MaterialComponents.Button">
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:minHeight">0dp</item>
+        <item name="cornerRadius">6dp</item>
+    </style>
+
+    <style name="CompactButtonOutlined" parent="Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:minHeight">0dp</item>
+        <item name="cornerRadius">6dp</item>
     </style>
 </resources>
