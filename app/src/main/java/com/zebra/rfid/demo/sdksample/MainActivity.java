@@ -1,5 +1,6 @@
-import com.google.android.material.snackbar.Snackbar;
+
 package com.zebra.rfid.demo.sdksample;
+import com.google.android.material.snackbar.Snackbar;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
@@ -260,6 +261,19 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
+                if (id == R.id.menu_connect) {
+                    if (rfidHandler != null) {
+                        rfidHandler.toggleConnection();
+                        showSnackbar("Connecting...");
+                    }
+                    return true;
+                } else if (id == R.id.menu_disconnect) {
+                    if (rfidHandler != null) {
+                        rfidHandler.disconnect();
+                        showSnackbar("Disconnecting...");
+                    }
+                    return true;
+                }
         int id = item.getItemId();
         String result;
         if (id == R.id.antenna_settings) {

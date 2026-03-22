@@ -5,6 +5,18 @@
 
 
 
+
+    <item
+        android:id="@+id/menu_connect"
+        android:title="@string/menu_connect"
+        app:icon="@android:drawable/ic_menu_share"
+        app:showAsAction="ifRoom|withText" />
+    <item
+        android:id="@+id/menu_disconnect"
+        android:title="@string/menu_disconnect"
+        app:icon="@android:drawable/ic_menu_close_clear_cancel"
+        app:showAsAction="ifRoom|withText" />
+
     <item
         android:id="@+id/antenna_settings"
         android:title="@string/antenna_settings"
@@ -13,8 +25,7 @@
         android:id="@+id/Singulation_control"
         android:title="@string/Singulation_control"
         app:showAsAction="never" />
-
-   <item
+    <item
         android:id="@+id/Default"
         android:title="@string/Defaults"
         app:showAsAction="never" />
