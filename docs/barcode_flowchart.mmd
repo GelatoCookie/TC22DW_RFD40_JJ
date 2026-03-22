@@ -1,0 +1,59 @@
+flowchart TD
+    subgraph HW["🔧 Hardware Layer"]
+        TRIG_TC["TC22 Trigger Button"]
+        TC22["TC22 Built-in Scanner\n(SE4710 Imager)"]
+        TRIG_RFD["RFD40 Trigger Button"]
+        RFD40_BC["RFD40 Barcode Module"]
+        UI_SCAN["UI: Pull Trigger Button"]
+    end
+
+    subgraph DW["📡 Path 1: DataWedge — TC22 Internal Scanner"]
+        DW_ENGINE["DataWedge Engine\n(System Service)"]
+        DW_PROFILE["DW Profile:\nHHSampleAppProfile\n• Barcode: enabled\n• RFID: disabled\n• Intent output: BARCODE_ACTION\n• Keystroke: disabled"]
+        DW_BROADCAST["Broadcast Intent\nAction: BARCODE_ACTION\nExtras: data_string, label_type"]
+        DW_HANDLER["DataWedgeHandler\n(BroadcastReceiver)\nonReceive()"]
+    end
+
+    subgraph SDK["📱 Path 2: Scanner SDK — RFD40 Barcode Engine"]
+        SDK_INIT["SDKHandler Init\n• USB CDC mode\n• BT Normal mode\n• Subscribe events"]
+        SDK_SESSION["Establish Communication\nSession with RFD40 Scanner"]
+        SDK_PULL["Pull Trigger Command\nDCSSDK_DEVICE_PULL_TRIGGER\n(XML over DCSSDK)"]
+        SCANNER_CB["ScannerHandler\n(IDcsSdkApiDelegate)\ndcssdkEventBarcode()"]
+    end
+
+    subgraph APP["📊 MainActivity — Data Convergence"]
+        BC_SYM["barcodeData(val, symbology)\nfrom DataWedge"]
+        BC_RAW["barcodeData(val)\nfrom Scanner SDK"]
+        BEEP["🔊 playBarcodeBeep()\nTONE_PROP_BEEP"]
+        COUNT["tagSeenCount.put(val, count+1)\ntagLabelMap.put(val, label)"]
+        REBUILD["rebuildTagList()\nRebuilds ListView entries"]
+        DISPLAY["📋 ListView\nvalue (symbology)  x count"]
+        STATUS["Status: Unique Tags: N"]
+    end
+
+    TRIG_TC -->|"Press"| TC22
+    TC22 --> DW_ENGINE
+    DW_ENGINE --> DW_PROFILE
+    DW_PROFILE -->|"Decode + Intent"| DW_BROADCAST
+    DW_BROADCAST -->|"sendBroadcast()"| DW_HANDLER
+    DW_HANDLER -->|"onBarcodeScanned(barcode, symbology)"| BC_SYM
+
+    TRIG_RFD -->|"Press"| RFD40_BC
+    UI_SCAN -->|"Tap"| SDK_PULL
+    SDK_PULL -->|"executeCommand()"| RFD40_BC
+    RFD40_BC --> SDK_INIT
+    SDK_INIT --> SDK_SESSION
+    SDK_SESSION --> SCANNER_CB
+    SCANNER_CB -->|"byte[] → String"| BC_RAW
+
+    BC_SYM --> BEEP
+    BC_RAW --> BEEP
+    BEEP --> COUNT
+    COUNT --> REBUILD
+    REBUILD --> DISPLAY
+    REBUILD --> STATUS
+
+    style HW fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style DW fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style SDK fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style APP fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px

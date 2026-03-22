@@ -1,5 +1,9 @@
 # Design Document: Barcode Capture Architecture
 
+## Architecture Flowchart
+
+![Barcode Capture Flowchart](docs/barcode_capture_flowchart.png)
+
 ## Overview
 
 This application uses **two independent barcode capture paths** to handle scanning from different hardware:
