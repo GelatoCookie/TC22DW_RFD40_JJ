@@ -42,12 +42,12 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
     
     /** TextView to display RFID connection and operation status. */
     private TextView statusTextViewRFID;
-        /**
-         * Public accessor for statusTextViewRFID for use by RFIDHandler.
-         */
-        public TextView getStatusTextViewRFID() {
-            return statusTextViewRFID;
-        }
+    /**
+     * Public accessor for statusTextViewRFID for use by RFIDHandler.
+     */
+    public TextView getStatusTextViewRFID() {
+        return statusTextViewRFID;
+    }
     
     /** ListView to display scanned RFID tag data. */
     private ListView tagListView;
@@ -225,6 +225,7 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
         String result;
+<<<<<<< HEAD
         if (id == R.id.antenna_settings) {
             result = rfidHandler.Test1();
             Toast.makeText(this, result, Toast.LENGTH_SHORT).show();
@@ -235,6 +236,19 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
             return true;
         } else if (id == R.id.Default) {
             result = rfidHandler.Defaults();
+=======
+
+        if (id == R.id.menu_connect){
+//            result = rfidHandler.connect();
+//            Toast.makeText(this, result, Toast.LENGTH_SHORT).show();
+//            updateReaderStatus(result, rfidHandler.isReaderConnected());
+            rfidHandler.onCreate(this);
+            return true;
+        }
+
+        if (id == R.id.menu_disconnect){
+            result = rfidHandler.disconnect();
+>>>>>>> 73b14cc (feat: latest tag on top, scanner WAITING green, build fix)
             Toast.makeText(this, result, Toast.LENGTH_SHORT).show();
             return true;
         }
@@ -303,28 +317,27 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
     private void clearTagData() {
         runOnUiThread(() -> {
             tagSeenCount.clear();
-            tagLabelMap.clear();
             tagList.clear();
-            if (tagAdapter != null) {
-                tagAdapter.notifyDataSetChanged();
+            // Add entries to a temporary list, then reverse for latest on top
+            ArrayList<String> tempList = new ArrayList<>();
+            for (Map.Entry<String, Integer> entry : tagSeenCount.entrySet()) {
+                String id = entry.getKey();
+                int count = entry.getValue();
+                String label = tagLabelMap.get(id);
+                if (label != null) {
+                    tempList.add(id + " (" + label + ")  x" + count);
+                } else {
+                    tempList.add(id + "  x" + count);
+                }
             }
-        });
-    }
-
-    /**
-     * Called when the Scan Code button is clicked.
-     * @param view The view that was clicked.
-     */
-    public void scanCode(View view) {
-        rfidHandler.scanCode();
-    }
-
-    /**
+            // Reverse so the latest tag is at the top
+            for (int i = tempList.size() - 1; i >= 0; i--) {
+                tagList.add(tempList.get(i));
+            }
      * Called when the Stop Inventory button is clicked.
      * @param view The view that was clicked.
      */
     public void StopInventory(View view) {
-        toggleInventoryButtons(false);
         rfidHandler.stopInventory();
     }
 
@@ -360,16 +373,33 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
     /** Rebuilds the display list from the tagSeenCount map. Must be called on UI thread. */
     private void rebuildTagList() {
         tagList.clear();
+<<<<<<< HEAD
+=======
+        // Add entries to a temporary list, then reverse for latest on top
+        ArrayList<String> tempList = new ArrayList<>();
+>>>>>>> 73b14cc (feat: latest tag on top, scanner WAITING green, build fix)
         for (Map.Entry<String, Integer> entry : tagSeenCount.entrySet()) {
             String id = entry.getKey();
             int count = entry.getValue();
             String label = tagLabelMap.get(id);
             if (label != null) {
+<<<<<<< HEAD
                 tagList.add(id + " (" + label + ")  x" + count);
             } else {
                 tagList.add(id + "  x" + count);
             }
         }
+=======
+                tempList.add(id + " (" + label + ")  x" + count);
+            } else {
+                tempList.add(id + "  x" + count);
+            }
+        }
+        // Reverse so the latest tag is at the top
+        for (int i = tempList.size() - 1; i >= 0; i--) {
+            tagList.add(tempList.get(i));
+        }
+>>>>>>> 73b14cc (feat: latest tag on top, scanner WAITING green, build fix)
         if (tagAdapter != null) {
             tagAdapter.notifyDataSetChanged();
         }
@@ -443,6 +473,11 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
             Log.d(TAG, "DataWedge Scanner Status Changed: " + status);
             if (scanResult != null) {
                 scanResult.setText(String.format("Scanner Status: %s", status));
+                if ("WAITING".equalsIgnoreCase(status)) {
+                    scanResult.setTextColor(getResources().getColor(R.color.status_connected)); // green
+                } else {
+                    scanResult.setTextColor(getResources().getColor(R.color.black)); // default
+                }
             }
         });
     }
