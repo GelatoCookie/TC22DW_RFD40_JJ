@@ -1,0 +1,39 @@
+# Android/Java build outputs
+/build/
+/app/build/
+*.apk
+*.ap_*
+*.dex
+*.class
+*.jar
+*.keystore
+*.so
+*.log
+*.tmp
+*.swp
+
+# Gradle
+.gradle/
+local.properties
+.idea/
+*.iml
+
+# MacOS
+.DS_Store
+
+# VS Code
+.vscode/
+
+# Misc
+*.orig
+*.bak
+/captures
+.externalNativeBuild
+.cxx
+/google-services.json
+*.aar
+*.jks
+
+# Allow AAR files in app/libs and app/libs177
+!app/libs/*.aar
+!app/libs177/*.aar
