@@ -4,7 +4,7 @@
     tools:context="com.zebra.rfid.demo.sdksample.MainActivity">
 
 
-
+<!--
     <item
         android:id="@+id/antenna_settings"
         android:title="@string/antenna_settings"
@@ -19,9 +19,15 @@
         android:title="@string/Defaults"
         app:showAsAction="never" />
 
+        -->
+
     <item
         android:id="@+id/menu_connect"
         android:title="@string/menu_connect"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/menu_readers"
+        android:title="@string/menu_readers"
         app:showAsAction="never" />
     <item
         android:id="@+id/menu_disconnect"

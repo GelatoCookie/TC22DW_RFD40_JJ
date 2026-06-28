@@ -92,6 +92,34 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
         return "Default settings applied";
     }
 
+    /**
+     * @return List of available RFID readers.
+     */
+    public ArrayList<ReaderDevice> getAvailableRFIDReaderList() {
+        return availableRFIDReaderList;
+    }
+
+    /**
+     * Connects to a specific reader device.
+     * @param device The reader device to connect to.
+     */
+    public void connectToReader(ReaderDevice device) {
+        if (device == null) return;
+        executor.execute(() -> {
+            synchronized (RFIDHandler.this) {
+                if (isReaderConnected()) {
+                    disconnect();
+                }
+                readerDevice = device;
+                reader = readerDevice.getRFIDReader();
+                String result = connect();
+                if (context != null) {
+                    context.updateReaderStatus(result, isReaderConnected());
+                }
+            }
+        });
+    }
+
     private boolean isReaderConnected() {
         return reader != null && reader.isConnected();
     }
@@ -147,18 +175,7 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
                             if (readers == null) {
                                 readers = new Readers(context, transport);
                             } else {
-                                try {
-                                    readers.setTransport(transport);
-                                } catch (InvalidUsageException e) {
-                                    Log.d(TAG, "setTransport failed, recreating Readers with " + transport.name());
-                                    try {
-                                        readers.Dispose();
-                                    } catch (Exception ex) {
-                                        Log.e(TAG, "Error disposing readers on fallback", ex);
-                                    }
-                                    readers = null;
-                                    readers = new Readers(context, transport);
-                                }
+                                readers.setTransport(transport);
                             }
                             ArrayList<ReaderDevice> list = readers.GetAvailableRFIDReaderList();
                             availableRFIDReaderList = (list != null) ? new ArrayList<>(list) : new ArrayList<>();

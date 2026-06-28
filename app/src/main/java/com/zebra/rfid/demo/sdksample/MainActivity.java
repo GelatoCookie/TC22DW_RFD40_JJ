@@ -20,10 +20,12 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import com.zebra.rfid.api3.ReaderDevice;
 import com.zebra.rfid.api3.TagData;
 
 import java.util.ArrayList;
@@ -88,11 +90,7 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
 
         statusTextViewRFID = findViewById(R.id.textViewStatusrfid);
         if (statusTextViewRFID != null) {
-            statusTextViewRFID.setOnClickListener(v -> {
-                if (rfidHandler != null) {
-                    rfidHandler.toggleConnection();
-                }
-            });
+            statusTextViewRFID.setOnClickListener(v -> showReadersList());
         }
 
         scanResult = findViewById(R.id.scanResult);
@@ -226,20 +224,24 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
         int id = item.getItemId();
         String result;
 
-        if (id == R.id.antenna_settings) {
-            result = rfidHandler.Test1();
-            Toast.makeText(this, result, Toast.LENGTH_SHORT).show();
-            return true;
-        } else if (id == R.id.Singulation_control) {
-            result = rfidHandler.Test2();
-            Toast.makeText(this, result, Toast.LENGTH_SHORT).show();
-            return true;
-        } else if (id == R.id.Default) {
-            result = rfidHandler.Defaults();
-            Toast.makeText(this, result, Toast.LENGTH_SHORT).show();
-            return true;
-        } else if (id == R.id.menu_connect) {
+//        if (id == R.id.antenna_settings) {
+//            result = rfidHandler.Test1();
+//            Toast.makeText(this, result, Toast.LENGTH_SHORT).show();
+//            return true;
+//        } else if (id == R.id.Singulation_control) {
+//            result = rfidHandler.Test2();
+//            Toast.makeText(this, result, Toast.LENGTH_SHORT).show();
+//            return true;
+//        } else if (id == R.id.Default) {
+//            result = rfidHandler.Defaults();
+//            Toast.makeText(this, result, Toast.LENGTH_SHORT).show();
+//            return true;
+//        } else if
+        if (id == R.id.menu_connect) {
             rfidHandler.onCreate(this);
+            return true;
+        } else if (id == R.id.menu_readers) {
+            showReadersList();
             return true;
         } else if (id == R.id.menu_disconnect) {
             result = rfidHandler.disconnect();
@@ -475,6 +477,31 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
     @Override
     public void onBarcodeScanned(String barcode, String symbology) {
         barcodeData(barcode, symbology);
+    }
+
+    /**
+     * Shows a dialog with the list of available RFID readers.
+     */
+    private void showReadersList() {
+        if (rfidHandler == null) return;
+        ArrayList<ReaderDevice> readers = rfidHandler.getAvailableRFIDReaderList();
+        if (readers == null || readers.isEmpty()) {
+            Toast.makeText(this, "No readers found", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        final String[] readerNames = new String[readers.size()];
+        for (int i = 0; i < readers.size(); i++) {
+            readerNames[i] = readers.get(i).getName();
+        }
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Select Reader");
+        builder.setItems(readerNames, (dialog, which) -> {
+            ReaderDevice selectedDevice = readers.get(which);
+            rfidHandler.connectToReader(selectedDevice);
+        });
+        builder.show();
     }
 
 }
