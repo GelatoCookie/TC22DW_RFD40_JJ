@@ -225,7 +225,7 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
         String result;
-<<<<<<< HEAD
+
         if (id == R.id.antenna_settings) {
             result = rfidHandler.Test1();
             Toast.makeText(this, result, Toast.LENGTH_SHORT).show();
@@ -236,19 +236,13 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
             return true;
         } else if (id == R.id.Default) {
             result = rfidHandler.Defaults();
-=======
-
-        if (id == R.id.menu_connect){
-//            result = rfidHandler.connect();
-//            Toast.makeText(this, result, Toast.LENGTH_SHORT).show();
-//            updateReaderStatus(result, rfidHandler.isReaderConnected());
+            Toast.makeText(this, result, Toast.LENGTH_SHORT).show();
+            return true;
+        } else if (id == R.id.menu_connect) {
             rfidHandler.onCreate(this);
             return true;
-        }
-
-        if (id == R.id.menu_disconnect){
+        } else if (id == R.id.menu_disconnect) {
             result = rfidHandler.disconnect();
->>>>>>> 73b14cc (feat: latest tag on top, scanner WAITING green, build fix)
             Toast.makeText(this, result, Toast.LENGTH_SHORT).show();
             return true;
         }
@@ -334,6 +328,13 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
             for (int i = tempList.size() - 1; i >= 0; i--) {
                 tagList.add(tempList.get(i));
             }
+            if (tagAdapter != null) {
+                tagAdapter.notifyDataSetChanged();
+            }
+        });
+    }
+
+    /**
      * Called when the Stop Inventory button is clicked.
      * @param view The view that was clicked.
      */
@@ -373,23 +374,13 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
     /** Rebuilds the display list from the tagSeenCount map. Must be called on UI thread. */
     private void rebuildTagList() {
         tagList.clear();
-<<<<<<< HEAD
-=======
         // Add entries to a temporary list, then reverse for latest on top
         ArrayList<String> tempList = new ArrayList<>();
->>>>>>> 73b14cc (feat: latest tag on top, scanner WAITING green, build fix)
         for (Map.Entry<String, Integer> entry : tagSeenCount.entrySet()) {
             String id = entry.getKey();
             int count = entry.getValue();
             String label = tagLabelMap.get(id);
             if (label != null) {
-<<<<<<< HEAD
-                tagList.add(id + " (" + label + ")  x" + count);
-            } else {
-                tagList.add(id + "  x" + count);
-            }
-        }
-=======
                 tempList.add(id + " (" + label + ")  x" + count);
             } else {
                 tempList.add(id + "  x" + count);
@@ -399,7 +390,6 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
         for (int i = tempList.size() - 1; i >= 0; i--) {
             tagList.add(tempList.get(i));
         }
->>>>>>> 73b14cc (feat: latest tag on top, scanner WAITING green, build fix)
         if (tagAdapter != null) {
             tagAdapter.notifyDataSetChanged();
         }

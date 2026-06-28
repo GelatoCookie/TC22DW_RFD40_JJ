@@ -131,18 +131,49 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
         if (readers == null) {
             executor.execute(() -> {
                 InvalidUsageException exception = null;
+
                 try {
-                    readers = new Readers(context, ENUM_TRANSPORT.SERVICE_USB);
-                    ArrayList<ReaderDevice> list = readers.GetAvailableRFIDReaderList();
-                    availableRFIDReaderList = (list != null) ? new ArrayList<>(list) : new ArrayList<>();
-                    
-                    if (availableRFIDReaderList.isEmpty()) {
-                        readers.setTransport(ENUM_TRANSPORT.BLUETOOTH);
-                        list = readers.GetAvailableRFIDReaderList();
-                        availableRFIDReaderList = (list != null) ? new ArrayList<>(list) : new ArrayList<>();
+                    ENUM_TRANSPORT[] transports = {
+                        ENUM_TRANSPORT.SERVICE_USB,
+                        ENUM_TRANSPORT.RE_USB,
+                        ENUM_TRANSPORT.RE_SERIAL,
+                        ENUM_TRANSPORT.SERVICE_SERIAL,
+                        ENUM_TRANSPORT.BLUETOOTH
+                    };
+
+                    for (ENUM_TRANSPORT transport : transports) {
+                        try {
+                            Log.d(TAG, "Trying transport: " + transport.name());
+                            if (readers == null) {
+                                readers = new Readers(context, transport);
+                            } else {
+                                try {
+                                    readers.setTransport(transport);
+                                } catch (InvalidUsageException e) {
+                                    Log.d(TAG, "setTransport failed, recreating Readers with " + transport.name());
+                                    try {
+                                        readers.Dispose();
+                                    } catch (Exception ex) {
+                                        Log.e(TAG, "Error disposing readers on fallback", ex);
+                                    }
+                                    readers = null;
+                                    readers = new Readers(context, transport);
+                                }
+                            }
+                            ArrayList<ReaderDevice> list = readers.GetAvailableRFIDReaderList();
+                            availableRFIDReaderList = (list != null) ? new ArrayList<>(list) : new ArrayList<>();
+                            if (!availableRFIDReaderList.isEmpty()) {
+                                Log.d(TAG, "Readers found using transport: " + transport.name());
+                                exception = null;
+                                break;
+                            }
+                        } catch (InvalidUsageException e) {
+                            Log.e(TAG, "Error with transport " + transport.name(), e);
+                            exception = e;
+                        }
                     }
-                } catch (InvalidUsageException e) {
-                    exception = e;
+                } catch (Exception e) {
+                    Log.e(TAG, "Unexpected error in transport loop", e);
                 }
                 
                 final InvalidUsageException finalException = exception;
@@ -320,7 +351,7 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
         }
     }
 
-    private synchronized void disconnect() {
+    public synchronized String disconnect() {
         try {
             if (reader != null) {
                 if (eventHandler != null) reader.Events.removeEventsListener(eventHandler);
@@ -333,10 +364,13 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
                 reader.Dispose();
                 reader = null;
                 sdkHandler = null;
+                return "Disconnected";
             }
         } catch (Exception e) {
             Log.e(TAG, "Error during disconnect", e);
+            return "Disconnect failed: " + e.getMessage();
         }
+        return "Not connected";
     }
 
     private synchronized void dispose() {

@@ -4,4 +4,6 @@
     <string name="antenna_settings">Antenna_Settings</string>
     <string name="Singulation_control">Singulation-control</string>
     <string name="Defaults">Defaults</string>
+    <string name="menu_connect">Connect</string>
+    <string name="menu_disconnect">Disconnect</string>
 </resources>

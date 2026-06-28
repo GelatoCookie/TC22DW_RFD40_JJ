@@ -19,5 +19,13 @@
         android:title="@string/Defaults"
         app:showAsAction="never" />
 
+    <item
+        android:id="@+id/menu_connect"
+        android:title="@string/menu_connect"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/menu_disconnect"
+        android:title="@string/menu_disconnect"
+        app:showAsAction="never" />
 
 </menu>
