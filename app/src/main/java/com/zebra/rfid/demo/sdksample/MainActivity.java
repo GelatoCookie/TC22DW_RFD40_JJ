@@ -74,6 +74,11 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
 
     /** Handler for DataWedge status notifications. */
     private DataWedgeHandler dataWedgeHandler;
+
+    /** ToneGenerator for beep sounds. */
+    private ToneGenerator toneGenerator;
+    /** AudioManager used to choose an audible stream for tone playback. */
+    private AudioManager audioManager;
     
     /** Map to track tag/barcode IDs and their seen counts. */
     private final LinkedHashMap<String, Integer> tagSeenCount = new LinkedHashMap<>();
@@ -82,6 +87,7 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
     
     private static final int BLUETOOTH_PERMISSION_REQUEST_CODE = 100;
     private boolean wasConnected = false;
+    private boolean isFirstLaunch = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -115,6 +121,13 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
 
         rfidHandler = new RFIDHandler();
         dataWedgeHandler = new DataWedgeHandler(this, this);
+        audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
+        initializeToneGenerator();
+
+        // Add SDK version to title
+        String sdkVersion = rfidHandler.getSDKVersion();
+        setTitle(getTitle() + " (SDK: " + sdkVersion + ")");
+
         checkPermissionsAndInit();
     }
 
@@ -150,35 +163,79 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
     }
 
     private void playConnectSound() {
-        try {
-            ToneGenerator toneGen = new ToneGenerator(AudioManager.STREAM_MUSIC, ToneGenerator.MAX_VOLUME);
-            toneGen.startTone(ToneGenerator.TONE_CDMA_ALERT_CALL_GUARD, 200);
-            new Handler(Looper.getMainLooper()).postDelayed(() -> {
-                toneGen.startTone(ToneGenerator.TONE_CDMA_ALERT_CALL_GUARD, 200);
-                new Handler(Looper.getMainLooper()).postDelayed(toneGen::release, 300);
-            }, 300);
-        } catch (Exception e) {
-            Log.e(TAG, "Error playing connect sound", e);
-        }
+        playTone(ToneGenerator.TONE_CDMA_ALERT_CALL_GUARD, 200);
+        new Handler(Looper.getMainLooper()).postDelayed(
+                () -> playTone(ToneGenerator.TONE_CDMA_ALERT_CALL_GUARD, 200),
+                300);
     }
 
     private void playDisconnectSound() {
-        try {
-            ToneGenerator toneGen = new ToneGenerator(AudioManager.STREAM_MUSIC, ToneGenerator.MAX_VOLUME);
-            toneGen.startTone(ToneGenerator.TONE_CDMA_ABBR_ALERT, 400);
-            new Handler(Looper.getMainLooper()).postDelayed(toneGen::release, 500);
-        } catch (Exception e) {
-            Log.e(TAG, "Error playing disconnect sound", e);
-        }
+        playTone(ToneGenerator.TONE_CDMA_ABBR_ALERT, 400);
     }
 
     private void playBarcodeBeep() {
+        playTone(ToneGenerator.TONE_PROP_BEEP, 150);
+    }
+
+    private void initializeToneGenerator() {
+        releaseToneGenerator();
+
         try {
-            ToneGenerator toneGen = new ToneGenerator(AudioManager.STREAM_MUSIC, ToneGenerator.MAX_VOLUME);
-            toneGen.startTone(ToneGenerator.TONE_PROP_BEEP, 150);
-            new Handler(Looper.getMainLooper()).postDelayed(toneGen::release, 250);
-        } catch (Exception e) {
-            Log.e(TAG, "Error playing barcode beep", e);
+            toneGenerator = new ToneGenerator(resolveToneStream(), 100);
+        } catch (RuntimeException e) {
+            Log.e(TAG, "Failed to create ToneGenerator", e);
+            toneGenerator = null;
+        }
+    }
+
+    private int resolveToneStream() {
+        if (audioManager != null) {
+            int[] candidateStreams = new int[]{
+                    AudioManager.STREAM_ALARM,
+                    AudioManager.STREAM_NOTIFICATION,
+                    AudioManager.STREAM_RING,
+                    AudioManager.STREAM_SYSTEM,
+                    AudioManager.STREAM_MUSIC
+            };
+
+            for (int stream : candidateStreams) {
+                if (audioManager.getStreamVolume(stream) > 0) {
+                    return stream;
+                }
+            }
+        }
+        return AudioManager.STREAM_MUSIC;
+    }
+
+    private void playTone(int toneType, int durationMs) {
+        if (toneGenerator == null) {
+            initializeToneGenerator();
+        }
+
+        if (toneGenerator != null) {
+            try {
+                toneGenerator.stopTone();
+                boolean started = toneGenerator.startTone(toneType, durationMs);
+                if (!started) {
+                    Log.w(TAG, "ToneGenerator.startTone returned false, retrying with re-initialization");
+                    initializeToneGenerator();
+                    if (toneGenerator != null) {
+                        toneGenerator.startTone(toneType, durationMs);
+                    }
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error playing tone", e);
+                initializeToneGenerator();
+            }
+        } else {
+            Log.w(TAG, "ToneGenerator is null, cannot play tone");
+        }
+    }
+
+    private void releaseToneGenerator() {
+        if (toneGenerator != null) {
+            toneGenerator.release();
+            toneGenerator = null;
         }
     }
 
@@ -263,7 +320,12 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
     @Override
     protected void onPostResume() {
         super.onPostResume();
-        rfidHandler.onResume();
+        // Re-initialize and reconnect when returning to foreground
+        if (!isFirstLaunch) {
+            rfidHandler.onCreate(this);
+        }
+        isFirstLaunch = false;
+
         if (dataWedgeHandler != null) {
             dataWedgeHandler.registerReceiver();
             dataWedgeHandler.createProfile(PROFILE_NAME);
@@ -275,6 +337,7 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
     protected void onDestroy() {
         super.onDestroy();
         rfidHandler.onDestroy();
+        releaseToneGenerator();
     }
 
     /**

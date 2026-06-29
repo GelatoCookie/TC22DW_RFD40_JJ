@@ -68,6 +68,13 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
     public String Test2() { return "TODO2"; }
 
     /**
+     * @return The Zebra RFID SDK version string.
+     */
+    public String getSDKVersion() {
+        return com.zebra.rfid.api3.BuildConfig.VERSION_NAME;
+    }
+
+    /**
      * Resets the reader settings to defaults.
      * @return Success or error message.
      */
@@ -136,15 +143,6 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
         }
     }
 
-    void onResume() {
-        executor.execute(() -> {
-            String result = connect();
-            if (context != null) {
-                context.updateReaderStatus(result, isReaderConnected());
-            }
-        });
-    }
-
     void onPause() {
         disconnect();
     }
@@ -162,11 +160,13 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
 
                 try {
                     ENUM_TRANSPORT[] transports = {
+                        ENUM_TRANSPORT.BLUETOOTH,
                         ENUM_TRANSPORT.SERVICE_USB,
                         ENUM_TRANSPORT.RE_USB,
-                        ENUM_TRANSPORT.RE_SERIAL,
                         ENUM_TRANSPORT.SERVICE_SERIAL,
-                        ENUM_TRANSPORT.BLUETOOTH
+                        ENUM_TRANSPORT.RE_SERIAL,
+                        ENUM_TRANSPORT.QC_SERIAL,
+                        ENUM_TRANSPORT.ALL
                     };
 
                     for (ENUM_TRANSPORT transport : transports) {
@@ -184,12 +184,16 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
                                 exception = null;
                                 break;
                             }
-                        } catch (InvalidUsageException e) {
+                        } catch (Throwable e) {
                             Log.e(TAG, "Error with transport " + transport.name(), e);
-                            exception = e;
+                            if (e instanceof InvalidUsageException) {
+                                exception = (InvalidUsageException) e;
+                            } else {
+                                exception = new InvalidUsageException(e.getMessage(), "Transport error");
+                            }
                         }
                     }
-                } catch (Exception e) {
+                } catch (Throwable e) {
                     Log.e(TAG, "Unexpected error in transport loop", e);
                 }
                 
@@ -281,7 +285,7 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
         if (readerDevice != null) {
             if (context != null) context.sendToast("RFIDReaderDisappeared: " + readerDevice.getName());
             if (reader != null && readerDevice.getName() != null
-                    && readerDevice.getName().equals(reader.getHostName())) {
+                    && readerDevice.getName().equalsIgnoreCase(reader.getHostName())) {
                 disconnect();
             }
         }
@@ -300,9 +304,9 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
                 } else {
                     return "Connected: " + reader.getHostName();
                 }
-            } catch (InvalidUsageException | OperationFailureException e) {
-                Log.e(TAG, "Connection failed", e);
-                return "Connection failed: " + e.getMessage();
+            } catch (Throwable t) {
+                Log.e(TAG, "Connection failed", t);
+                return "Connection failed: " + t.getMessage();
             }
         }
         return "Disconnected";
@@ -368,24 +372,52 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
         }
     }
 
+    public boolean getConnectStatus(){
+        if (reader!=null)
+            return reader.isConnected();
+        return false;
+    }
+
     public synchronized String disconnect() {
         try {
             if (reader != null) {
-                if (eventHandler != null) reader.Events.removeEventsListener(eventHandler);
-                if (sdkHandler != null) {
-                    sdkHandler.dcssdkTerminateCommunicationSession(scannerID);
+                if (eventHandler != null) {
+                    try {
+                        reader.Events.removeEventsListener(eventHandler);
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error removing events listener", e);
+                    }
                 }
-                reader.disconnect();
-                if (context != null)
-                    context.updateReaderStatus("Disconnected", false);
-                reader.Dispose();
+                if (sdkHandler != null) {
+                    try {
+                        sdkHandler.dcssdkTerminateCommunicationSession(scannerID);
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error terminating scanner session", e);
+                    }
+                }
+//                try {
+//                    reader.disconnect();
+//                } catch (Throwable t) {
+//                    Log.e(TAG, "Error during reader.disconnect()", t);
+//                }
+//                try {
+//                    reader.Dispose();
+//                } catch (Throwable t) {
+//                    Log.e(TAG, "Error during reader.Dispose()", t);
+//                }
                 reader = null;
                 sdkHandler = null;
+                if (context != null)
+                    context.updateReaderStatus("Disconnected", false);
                 return "Disconnected";
             }
-        } catch (Exception e) {
-            Log.e(TAG, "Error during disconnect", e);
-            return "Disconnect failed: " + e.getMessage();
+        } catch (Throwable t) {
+            Log.e(TAG, "Error during disconnect wrapper", t);
+            reader = null;
+            sdkHandler = null;
+            if (context != null)
+                context.updateReaderStatus("Disconnected (with error)", false);
+            return "Disconnect failed: " + t.getMessage();
         }
         return "Not connected";
     }
@@ -397,8 +429,8 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
                 readers.Dispose();
                 readers = null;
             }
-        } catch (Exception e) {
-            Log.e(TAG, "Error during dispose", e);
+        } catch (Throwable t) {
+            Log.e(TAG, "Error during dispose", t);
         }
     }
 
@@ -427,8 +459,8 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
 
     private boolean executeCommand(DCSSDKDefs.DCSSDK_COMMAND_OPCODE opCode, String inXML, StringBuilder outXML, int scannerID) {
         if (sdkHandler != null) {
-            if (outXML == null) outXML = new StringBuilder();
-            DCSSDKDefs.DCSSDK_RESULT result = sdkHandler.dcssdkExecuteCommandOpCodeInXMLForScanner(opCode, inXML, outXML, scannerID);
+            StringBuilder response = (outXML != null) ? outXML : new StringBuilder();
+            DCSSDKDefs.DCSSDK_RESULT result = sdkHandler.dcssdkExecuteCommandOpCodeInXMLForScanner(opCode, inXML, response, scannerID);
             return result == DCSSDKDefs.DCSSDK_RESULT.DCSSDK_RESULT_SUCCESS;
         }
         return false;
