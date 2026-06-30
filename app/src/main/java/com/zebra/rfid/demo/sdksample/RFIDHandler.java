@@ -160,53 +160,55 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
                 InvalidUsageException exception = null;
 
                 try {
-                    ENUM_TRANSPORT[] transports = {
-                        ENUM_TRANSPORT.BLUETOOTH,
-                        ENUM_TRANSPORT.SERVICE_USB,
-                        ENUM_TRANSPORT.RE_USB,
-                        ENUM_TRANSPORT.SERVICE_SERIAL,
-                        ENUM_TRANSPORT.RE_SERIAL,
-                        ENUM_TRANSPORT.QC_SERIAL,
-                        ENUM_TRANSPORT.ALL
-                    };
+                    // Try ALL transports first as recommended by Zebra
+                    readers = new Readers(context, ENUM_TRANSPORT.ALL);
+                    ArrayList<ReaderDevice> list = readers.GetAvailableRFIDReaderList();
+                    availableRFIDReaderList = (list != null) ? new ArrayList<>(list) : new ArrayList<>();
 
-                    for (ENUM_TRANSPORT transport : transports) {
-                        try {
-                            Log.d(TAG, "Trying transport: " + transport.name());
-                            if (readers == null) {
-                                readers = new Readers(context, transport);
-                            } else {
+                    if (availableRFIDReaderList.isEmpty()) {
+                        Log.w(TAG, "No readers found with ENUM_TRANSPORT.ALL, trying individual transports");
+                        ENUM_TRANSPORT[] transports = {
+                                ENUM_TRANSPORT.BLUETOOTH,
+                                ENUM_TRANSPORT.SERVICE_USB,
+                                ENUM_TRANSPORT.RE_USB,
+                                ENUM_TRANSPORT.SERVICE_SERIAL,
+                                ENUM_TRANSPORT.RE_SERIAL,
+                                ENUM_TRANSPORT.QC_SERIAL // Added back for QC detection
+                        };
+
+                        for (ENUM_TRANSPORT transport : transports) {
+                            try {
+                                Log.d(TAG, "Trying transport: " + transport.name());
                                 readers.setTransport(transport);
-                            }
-                            ArrayList<ReaderDevice> list = readers.GetAvailableRFIDReaderList();
-                            availableRFIDReaderList = (list != null) ? new ArrayList<>(list) : new ArrayList<>();
-                            if (!availableRFIDReaderList.isEmpty()) {
-                                Log.d(TAG, "Readers found using transport: " + transport.name());
-                                exception = null;
-                                break;
-                            }
-                        } catch (Throwable e) {
-                            Log.e(TAG, "Error with transport " + transport.name(), e);
-                            if (e instanceof InvalidUsageException) {
-                                exception = (InvalidUsageException) e;
-                            } else {
-                                exception = new InvalidUsageException(e.getMessage(), "Transport error");
+                                ArrayList<ReaderDevice> individualList = readers.GetAvailableRFIDReaderList();
+                                if (individualList != null && !individualList.isEmpty()) {
+                                    availableRFIDReaderList = new ArrayList<>(individualList);
+                                    Log.d(TAG, "Readers found using transport: " + transport.name());
+                                    break;
+                                }
+                            } catch (Throwable e) {
+                                Log.e(TAG, "Error with transport " + transport.name(), e);
                             }
                         }
                     }
                 } catch (Throwable e) {
-                    Log.e(TAG, "Unexpected error in transport loop", e);
+                    Log.e(TAG, "Unexpected error in initSDK", e);
+                    if (e instanceof InvalidUsageException) {
+                        exception = (InvalidUsageException) e;
+                    } else {
+                        exception = new InvalidUsageException(e.getMessage(), "Initialization error");
+                    }
                 }
                 
                 final InvalidUsageException finalException = exception;
                 if (context != null) {
                     context.runOnUiThread(() -> {
                         if (finalException != null) {
-                            context.sendToast("Failed to get Available Readers\n" + finalException.getInfo());
+                            context.sendToast("Failed to initialize SDK\n" + finalException.getInfo());
                             readers = null;
-                            context.updateReaderStatus("Failed to get Readers", false);
+                            context.updateReaderStatus("Initialization failed", false);
                         } else if (availableRFIDReaderList.isEmpty()) {
-                            context.sendToast("No Available Readers to proceed");
+                            context.sendToast("No Available Readers found");
                             readers = null;
                             context.updateReaderStatus("No Readers Found", false);
                         } else {
@@ -257,6 +259,18 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
                 ArrayList<ReaderDevice> availableReaders = readers.GetAvailableRFIDReaderList();
                 if (availableReaders != null && !availableReaders.isEmpty()) {
                     availableRFIDReaderList = new ArrayList<>(availableReaders);
+                    
+                    // Priority 1: Look for "QC" readers first if user requested
+                    for (ReaderDevice device : availableRFIDReaderList) {
+                        if (device != null && device.getName() != null && device.getName().contains("QC")) {
+                            readerDevice = device;
+                            reader = readerDevice.getRFIDReader();
+                            Log.d(TAG, "Found QC Reader: " + device.getName());
+                            return;
+                        }
+                    }
+
+                    // Priority 2: Standard reader name matching
                     if (availableRFIDReaderList.size() == 1) {
                         readerDevice = availableRFIDReaderList.get(0);
                         reader = readerDevice.getRFIDReader();
@@ -307,7 +321,12 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
                 }
             } catch (Throwable t) {
                 Log.e(TAG, "Connection failed", t);
-                return "Connection failed: " + t.getMessage();
+                String message = t.getMessage();
+                // Check for the specific NoSuchMethodError related to version mismatch
+                if (t.toString().contains("unRegisterQrs") || (message != null && message.contains("unRegisterQrs"))) {
+                    return "Connection failed: SDK/Firmware mismatch. Please update Zebra RFID Service on device.";
+                }
+                return "Connection failed: " + (message != null ? message : t.toString());
             }
         }
         return "Disconnected";
@@ -346,6 +365,10 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
         }
 
         ArrayList<DCSScannerInfo> availableScanners = (ArrayList<DCSScannerInfo>) sdkHandler.dcssdkGetAvailableScannersList();
+        if (availableScanners == null || availableScanners.isEmpty()) {
+            if (context != null) context.setScanButtonEnabled(false);
+        }
+
         if (scannerList != null) {
             scannerList.clear();
         } else {

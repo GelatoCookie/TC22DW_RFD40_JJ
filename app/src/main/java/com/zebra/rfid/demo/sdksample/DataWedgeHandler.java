@@ -130,6 +130,17 @@ public class DataWedgeHandler {
     }
 
     /**
+     * Toggles the DataWedge scanner state (Soft Scan).
+     * @param start True to start scanning, false to stop.
+     */
+    public void toggleSoftScan(boolean start) {
+        Intent i = new Intent();
+        i.setAction(ACTION_DATAWEDGE);
+        i.putExtra("com.symbol.datawedge.api.SOFT_SCAN_TRIGGER", start ? "START_SCANNING" : "STOP_SCANNING");
+        context.sendBroadcast(i);
+    }
+
+    /**
      * Registers the broadcast receiver to listen for DataWedge notifications and barcode data.
      */
     public void registerReceiver() {

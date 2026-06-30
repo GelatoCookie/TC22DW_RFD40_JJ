@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">SDKSample</string>
+    <string name="app_name">TC501</string>
     <string name="action_settings">Settings</string>
     <string name="antenna_settings">Antenna_Settings</string>
     <string name="Singulation_control">Singulation-control</string>
@@ -7,4 +7,7 @@
     <string name="menu_connect">Connect</string>
     <string name="menu_readers">Readers List</string>
     <string name="menu_disconnect">Disconnect</string>
+    <string name="dw_status_label">DW Scan Status</string>
+    <string name="dw_status_idle">Idle</string>
+    <string name="reader_status_label">Reader Status</string>
 </resources>

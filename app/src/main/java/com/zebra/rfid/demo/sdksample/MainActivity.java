@@ -2,6 +2,10 @@ package com.zebra.rfid.demo.sdksample;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.media.AudioManager;
 import android.media.ToneGenerator;
@@ -61,13 +65,17 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
     private final ArrayList<String> tagList = new ArrayList<>();
     /** TextView to display barcode scan results or scanner status. */
     private TextView scanResult;
+    /** TextView to display DataWedge status. */
+    private TextView statusTextViewDW;
 
     /** Buttons for RFID Inventory control. */
     private Button btnStart;
     private Button btnStop;
     
-    /** Button for Barcode Scanning. */
+    /** Buttons for Barcode Scanning. */
     private Button btnScan;
+    private Button btnDWStart;
+    private Button btnDWStop;
     
     /** Handler for RFID and Scanner related operations. */
     private RFIDHandler rfidHandler;
@@ -85,6 +93,19 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
     /** Map to store a display label (e.g. symbology) per tag/barcode ID. */
     private final LinkedHashMap<String, String> tagLabelMap = new LinkedHashMap<>();
     
+    private final BroadcastReceiver powerReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (Intent.ACTION_POWER_DISCONNECTED.equals(intent.getAction())) {
+                Log.d(TAG, "Power disconnected (USB unplugged), triggering auto-reconnect");
+                if (rfidHandler != null) {
+                    // Re-initialize and connect
+                    rfidHandler.onCreate(MainActivity.this);
+                }
+            }
+        }
+    };
+
     private static final int BLUETOOTH_PERMISSION_REQUEST_CODE = 100;
     private boolean wasConnected = false;
     private boolean isFirstLaunch = true;
@@ -99,6 +120,7 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
             statusTextViewRFID.setOnClickListener(v -> showReadersList());
         }
 
+        statusTextViewDW = findViewById(R.id.textViewStatusDW);
         scanResult = findViewById(R.id.scanResult);
         
         // Initialize ListView and Adapter
@@ -111,13 +133,18 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
         btnStart = findViewById(R.id.TestButton);
         btnStop = findViewById(R.id.TestButton2);
         btnScan = findViewById(R.id.scan);
+        btnDWStart = findViewById(R.id.btnDWScanStart);
+        btnDWStop = findViewById(R.id.btnDWScanStop);
         
         // Initially inventory is not running and reader is not connected
         if (btnStart != null) btnStart.setEnabled(false);
         if (btnStop != null) btnStop.setEnabled(false);
         
-        // Initially disable scan button until session established
-        if (btnScan != null) btnScan.setEnabled(false);
+        // Initially hide scan button until scanner is available via SDK
+        if (btnScan != null) {
+            btnScan.setVisibility(View.GONE);
+            btnScan.setEnabled(false);
+        }
 
         rfidHandler = new RFIDHandler();
         dataWedgeHandler = new DataWedgeHandler(this, this);
@@ -315,11 +342,24 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
         if (dataWedgeHandler != null) {
             dataWedgeHandler.unregisterReceiver();
         }
+        try {
+            unregisterReceiver(powerReceiver);
+        } catch (Exception e) {
+            // Ignore if not registered
+        }
     }
 
     @Override
     protected void onPostResume() {
         super.onPostResume();
+        
+        IntentFilter powerFilter = new IntentFilter(Intent.ACTION_POWER_DISCONNECTED);
+        if (Build.VERSION.SDK_INT >= 33) {
+            registerReceiver(powerReceiver, powerFilter, Context.RECEIVER_EXPORTED);
+        } else {
+            registerReceiver(powerReceiver, powerFilter);
+        }
+
         // Re-initialize and reconnect when returning to foreground
         if (!isFirstLaunch) {
             rfidHandler.onCreate(this);
@@ -352,13 +392,14 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
     }
 
     /**
-     * Enables or disables the scan button.
-     * @param enabled True to enable the button.
+     * Enables or disables the scan button and toggles its visibility.
+     * @param enabled True to show and enable the button.
      */
     public void setScanButtonEnabled(boolean enabled) {
         runOnUiThread(() -> {
             if (btnScan != null) {
                 btnScan.setEnabled(enabled);
+                btnScan.setVisibility(enabled ? View.VISIBLE : View.GONE);
             }
         });
     }
@@ -527,15 +568,42 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
     public void onScannerStatusChange(String status) {
         runOnUiThread(() -> {
             Log.d(TAG, "DataWedge Scanner Status Changed: " + status);
-            if (scanResult != null) {
-                scanResult.setText(String.format("DW Scanner Status: %s", status));
-                if ("WAITING".equalsIgnoreCase(status)) {
-                    scanResult.setTextColor(getResources().getColor(R.color.status_connected)); // green
+            if (statusTextViewDW != null) {
+                statusTextViewDW.setText(status);
+                if ("WAITING".equalsIgnoreCase(status) || "ACTIVATED".equalsIgnoreCase(status)) {
+                    statusTextViewDW.setTextColor(ContextCompat.getColor(this, R.color.status_connected));
+                } else if ("DISABLED".equalsIgnoreCase(status)) {
+                    statusTextViewDW.setTextColor(ContextCompat.getColor(this, R.color.status_disconnected));
                 } else {
-                    scanResult.setTextColor(getResources().getColor(R.color.black)); // default
+                    statusTextViewDW.setTextColor(ContextCompat.getColor(this, R.color.black));
                 }
             }
+            
+            boolean isAvailable = "WAITING".equalsIgnoreCase(status) || "ACTIVATED".equalsIgnoreCase(status);
+            boolean isScanning = "SCANNING".equalsIgnoreCase(status);
+
+            if (btnScan != null) {
+                btnScan.setEnabled(isAvailable);
+            }
+            if (btnDWStart != null) {
+                btnDWStart.setEnabled(isAvailable && !isScanning);
+            }
+            if (btnDWStop != null) {
+                btnDWStop.setEnabled(isScanning);
+            }
         });
+    }
+
+    public void stopDWScan(View view) {
+        if (dataWedgeHandler != null) {
+            dataWedgeHandler.toggleSoftScan(false);
+        }
+    }
+
+    public void startDWScan(View view) {
+        if (dataWedgeHandler != null) {
+            dataWedgeHandler.toggleSoftScan(true);
+        }
     }
 
     @Override
