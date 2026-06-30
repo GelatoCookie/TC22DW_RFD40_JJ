@@ -48,6 +48,7 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
     private int scannerID;
     private final int MAX_POWER = 270;
     private final String readerName = "RFD4031-G10B700-WR";
+    private volatile boolean isInventoryRunning = false;
     
     /** Executor for background tasks. */
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -320,6 +321,8 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
                 reader.Events.addEventsListener(eventHandler);
                 reader.Events.setHandheldEvent(true);
                 reader.Events.setTagReadEvent(true);
+                reader.Events.setInventoryStartEvent(true);
+                reader.Events.setInventoryStopEvent(true);
                 reader.Events.setAttachTagDataWithReadEvent(false);
                 reader.Events.setReaderDisconnectEvent(true);
             } catch (InvalidUsageException | OperationFailureException e) {
@@ -407,6 +410,7 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
 //                }
                 reader = null;
                 sdkHandler = null;
+                isInventoryRunning = false;
                 if (context != null)
                     context.updateReaderStatus("Disconnected", false);
                 return "Disconnected";
@@ -436,7 +440,10 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
 
     synchronized void performInventory() {
         try {
-            if (reader != null && reader.isConnected()) reader.Actions.Inventory.perform();
+            if (reader != null && reader.isConnected()) {
+                reader.Actions.Inventory.perform();
+                isInventoryRunning = true;
+            }
         } catch (InvalidUsageException | OperationFailureException e) {
             Log.e(TAG, "Error performing inventory", e);
             if (context != null) context.sendToast("Inventory error: " + e.getMessage());
@@ -445,10 +452,12 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
 
     synchronized void stopInventory() {
         try {
-            if (reader != null && reader.isConnected()) reader.Actions.Inventory.stop();
+            if (reader != null && reader.isConnected() && isInventoryRunning) {
+                reader.Actions.Inventory.stop();
+                isInventoryRunning = false;
+            }
         } catch (InvalidUsageException | OperationFailureException e) {
             Log.e(TAG, "Error stopping inventory", e);
-            if (context != null) context.sendToast("Stop error: " + e.getMessage());
         }
     }
 
@@ -488,8 +497,11 @@ class RFIDHandler implements Readers.RFIDReaderEventHandler {
                         executor.execute(() -> context.handleTriggerPress(pressed));
                     }
                 }
-            }
-            else if (eventType == STATUS_EVENT_TYPE.DISCONNECTION_EVENT) {
+            } else if (eventType == STATUS_EVENT_TYPE.INVENTORY_START_EVENT) {
+                isInventoryRunning = true;
+            } else if (eventType == STATUS_EVENT_TYPE.INVENTORY_STOP_EVENT) {
+                isInventoryRunning = false;
+            } else if (eventType == STATUS_EVENT_TYPE.DISCONNECTION_EVENT) {
                 executor.execute(() -> {
                     disconnect();
                     dispose();

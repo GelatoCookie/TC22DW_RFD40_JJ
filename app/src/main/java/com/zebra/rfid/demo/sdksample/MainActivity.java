@@ -404,6 +404,7 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
      * @param view The view that was clicked.
      */
     public void StopInventory(View view) {
+        toggleInventoryButtons(false);
         rfidHandler.stopInventory();
     }
 
@@ -527,7 +528,7 @@ public class MainActivity extends AppCompatActivity implements RFIDHandler.Respo
         runOnUiThread(() -> {
             Log.d(TAG, "DataWedge Scanner Status Changed: " + status);
             if (scanResult != null) {
-                scanResult.setText(String.format("Scanner Status: %s", status));
+                scanResult.setText(String.format("DW Scanner Status: %s", status));
                 if ("WAITING".equalsIgnoreCase(status)) {
                     scanResult.setTextColor(getResources().getColor(R.color.status_connected)); // green
                 } else {
