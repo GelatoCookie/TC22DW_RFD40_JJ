@@ -1,4 +1,4 @@
-# Zebra RFID & Barcode Sample App (TC501-RC0)
+# Zebra RFID & Barcode Sample App (TC501_RC0)
 
 This Android app demonstrates Zebra RFID and Barcode integration, using Zebra RFID SDK and DataWedge API for asset tracking and data collection. It supports USB and Bluetooth connections, real-time inventory, barcode scanning, and hardware trigger events.
 
